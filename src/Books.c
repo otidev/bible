@@ -82,7 +82,11 @@ cJSON* GetRoot(char* filename) {
 	return root;
 }
 
-SDL_Texture* RenderChapter(TTF_Font* font, int fontSize, cJSON* books, cJSON* bookCont, int bookNumber, int chapter, SDL_Colour colour, int lineWidth) {
+SDL_Texture* RenderChapter(TTF_Font* font, int fontSize, cJSON* books, int bookNumber, int chapter, SDL_Colour colour, int lineWidth) {
+	char bookName[40];
+	snprintf(bookName, 40, "books/%s.json", cJSON_GetArrayItem(books, bookNumber)->valuestring);
+	cJSON* bookCont = GetRoot(bookName);
+
 	char bookChapterName[50];
 	snprintf(bookChapterName, 50, "%s %d", cJSON_GetArrayItem(books, bookNumber)->valuestring, chapter);
 
@@ -104,20 +108,20 @@ SDL_Texture* RenderChapter(TTF_Font* font, int fontSize, cJSON* books, cJSON* bo
 	cJSON* jsonVerses = cJSON_GetObjectItem(jsonChapter, "verses");
 	int numVerses = cJSON_GetArraySize(jsonVerses);
 
-	char* text = (char*)malloc(sizeof(char) * 1);
-	int textSize = 1;
+	char* text = NULL;
+	int textSize = 0;
 
 	for (int i = 0; i < numVerses; i++) {
 		cJSON* jsonVerse = cJSON_GetArrayItem(jsonVerses, i);
 		int verseNumber = atoi(cJSON_GetObjectItem(jsonVerse, "verse")->valuestring);
-		char digits[9] = {0, 0, 0, 0, 0, 0};
+		char digits[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
 		Superscript(verseNumber, digits);
 
-		text = (char*)realloc(text, sizeof(char) * (strlen(cJSON_GetObjectItem(jsonVerse, "text")->valuestring) + textSize + strlen(digits)) + 1);
-		textSize += (strlen(cJSON_GetObjectItem(jsonVerse, "text")->valuestring) + strlen(digits) + 1);
+		text = (char*)realloc(text, sizeof(char) * (strlen(cJSON_GetObjectItem(jsonVerse, "text")->valuestring) + textSize + strlen(digits) + 2));
+		textSize += (strlen(cJSON_GetObjectItem(jsonVerse, "text")->valuestring) + strlen(digits) + 2);
 		if (!text) {
 			fprintf(stderr, "Error: allocating Bible text failed");
-			return 0;
+			break;
 		}
 
 		snprintf(text, textSize, "%s%s%s ", text, digits, cJSON_GetObjectItem(jsonVerse, "text")->valuestring);
@@ -145,10 +149,10 @@ SDL_Texture* RenderChapter(TTF_Font* font, int fontSize, cJSON* books, cJSON* bo
 
 	SDL_DestroyTexture(header);
 	SDL_DestroyTexture(mainTextTex);
+	memset(text, 0, textSize);
 	free(text);
+	cJSON_Delete(bookCont);
 	SDL_SetRenderTarget(globalWindow->renderer, NULL);
-
-
 	return dstTex;
 }
 
@@ -159,7 +163,7 @@ void CloseBook(Book* book) {
 	free(book->chapters);
 }
 
-void OpenBook(Book* dstBook, TTF_Font* font, int fontSize, int bookNumber, cJSON* jsonBooks) {
+void OpenBook(Book* dstBook, TTF_Font* font, int fontSize, int bookNumber, int textWrapWidth, cJSON* jsonBooks) {
 	char bookName[40];
 	snprintf(bookName, 40, "books/%s.json", cJSON_GetArrayItem(jsonBooks, bookNumber)->valuestring);
 	cJSON* jsonBook = GetRoot(bookName);
@@ -171,19 +175,19 @@ void OpenBook(Book* dstBook, TTF_Font* font, int fontSize, int bookNumber, cJSON
 		return;
 	}
 	for (int j = 0; j < dstBook->numChapters; j++) {
-		dstBook->chapters[j].tex.data = RenderChapter(font, fontSize, jsonBooks, jsonBook, bookNumber, j + 1, (SDL_Colour){0, 0, 0, 255}, 700);
+		dstBook->chapters[j].tex.data = RenderChapter(font, fontSize, jsonBooks, bookNumber, j + 1, (SDL_Colour){0, 0, 0, 255}, textWrapWidth);
 		SDL_QueryTexture(dstBook->chapters[j].tex.data, NULL, NULL, &dstBook->chapters[j].tex.width, &dstBook->chapters[j].tex.height);
 	}
 
 	cJSON_Delete(jsonBook);
 }
 
-void RenderBookAndBooksBeside(TTF_Font* font, int fontSize, Book* books, int bookNumber, cJSON* jsonBooks) {
-	OpenBook(&books[bookNumber], font, fontSize, bookNumber, jsonBooks);
+void RenderBookAndBooksBeside(TTF_Font* font, int fontSize, int textWrapWidth, Book* books, int bookNumber, cJSON* jsonBooks) {
+	OpenBook(&books[bookNumber], font, fontSize, bookNumber, textWrapWidth, jsonBooks);
 
 	if (bookNumber != 0) {
-		OpenBook(&books[bookNumber - 1], font, fontSize, bookNumber - 1, jsonBooks);
+		OpenBook(&books[bookNumber - 1], font, fontSize, bookNumber - 1, textWrapWidth, jsonBooks);
 	} if (bookNumber != 65) {
-		OpenBook(&books[bookNumber + 1], font, fontSize, bookNumber + 1, jsonBooks);
+		OpenBook(&books[bookNumber + 1], font, fontSize, bookNumber + 1, textWrapWidth, jsonBooks);
 	}
 }
