@@ -11,6 +11,7 @@
 #include <wchar.h>
 #include "WavLoader.h"
 #include "cJSON.h"
+#include "ezxml.h"
 
 
 #define PI2 M_PI * 2

@@ -41,16 +41,18 @@ int main() {
 		return 0;
 	}
 
+	ezxml_t xmlBible = ezxml_parse_file("books/KJV.xml");
+
 	Book books[66];
 	int usedBook = 42;
 	int wrapWidth = 900;
-
-	RenderBookAndBooksBeside(font, origFontSize, wrapWidth, books, usedBook, jsonBooks);
-
 	int chapter = 0;
 
+	OpenBook(&books[usedBook], font, origFontSize, usedBook, wrapWidth, jsonBooks, xmlBible);
+
+
 	TTF_SetFontSize(font, 20);
-	SDL_Surface* surf = TTF_RenderUTF8_Blended(font, "Enter Bible verse:  ", (SDL_Colour){0, 0, 0, 255});
+	SDL_Surface* surf = TTF_RenderUTF8_Blended(font, "Enter book of the Bible:  ", (SDL_Colour){0, 0, 0, 255});
 	TTF_SetFontSize(font, origFontSize);
 	SDL_Texture* lookupTex = SDL_CreateTextureFromSurface(globalWindow->renderer, surf);
 	int lookupTexWidth, lookupTexHeight;
@@ -72,8 +74,8 @@ int main() {
 		globalWindow->deltaTime = (double)((now - last) / 1000.0);
 		last = SDL_GetTicks64();
 
-		ScrollAndZoom(books, &magnifier, usedBook, chapter, &scrollAmount, font, origFontSize, wrapWidth, jsonBooks, &text);
-		ChangeChapter(books, &usedBook, &chapter, &textOffset, &scrollAmount, font, origFontSize, wrapWidth, jsonBooks, &text, &textTransition);
+		ScrollAndZoom(books, &magnifier, usedBook, chapter, &scrollAmount, font, origFontSize, wrapWidth, jsonBooks, xmlBible, &text);
+		ChangeChapter(books, &usedBook, &chapter, &textOffset, &scrollAmount, font, origFontSize, wrapWidth, jsonBooks, xmlBible, &text, &textTransition);
 
 		if (window.keys[SDL_SCANCODE_LCTRL] && (window.keys[SDL_SCANCODE_L] && !window.lastKeys[SDL_SCANCODE_L])) {
 			for (int i = 0; i < 500; i++)
@@ -143,17 +145,16 @@ int main() {
 				for (int i = 0; i < 66; i++) {
 					if (strcmp(inputBook, cJSON_GetArrayItem(jsonBooks, i)->valuestring) == 0) {
 						CloseBook(&books[usedBook]);
-						if (usedBook != 0) CloseBook(&books[usedBook - 1]);
-						if (usedBook != 65) CloseBook(&books[usedBook + 1]);
 						usedBook = i;
 						chapter = 0;
-						RenderBookAndBooksBeside(font, origFontSize, wrapWidth, books, usedBook, jsonBooks);
+						OpenBook(&books[usedBook], font, origFontSize, usedBook, wrapWidth, jsonBooks, xmlBible);
 					}
 				}
 			}
 		}
 
 		SDL_RenderCopyF(window.renderer, books[usedBook].chapters[chapter].tex.data, NULL, &(SDL_FRect){window.width / 2 - (books[usedBook].chapters[chapter].tex.width) / 2 - (textOffset), scrollAmount, books[usedBook].chapters[chapter].tex.width, books[usedBook].chapters[chapter].tex.height});
+
 		if (textOffset < textTransition.end) {
 			if (chapter - 1 < 0) {
 				SDL_RenderCopyF(
@@ -189,13 +190,20 @@ int main() {
 			}
 		}
 
+		if (textOffset == textTransition.end && textTransition.start != textTransition.end) {
+			if (textTransition.start > textTransition.end && chapter + 1 >= books[usedBook].numChapters) {
+				CloseBook(&books[usedBook + 1]);
+			} if (textTransition.start < textTransition.end && chapter - 1 < 0) {
+				CloseBook(&books[usedBook - 1]);
+			}
+			textTransition.start = textTransition.end = 0;
+		}
+
 		SDL_RenderPresent(window.renderer);
 	}
 
 	SDL_DestroyTexture(lookupTex);
 	CloseBook(&books[usedBook]);
-	if (usedBook != 0) CloseBook(&books[usedBook - 1]);
-	if (usedBook != 65) CloseBook(&books[usedBook + 1]);
 
 	SDL_DestroyWindow(window.window);
 	TTF_CloseFont(font);

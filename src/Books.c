@@ -82,11 +82,7 @@ cJSON* GetRoot(char* filename) {
 	return root;
 }
 
-SDL_Texture* RenderChapter(TTF_Font* font, int fontSize, cJSON* books, int bookNumber, int chapter, SDL_Colour colour, int lineWidth) {
-	char bookName[40];
-	snprintf(bookName, 40, "books/%s.json", cJSON_GetArrayItem(books, bookNumber)->valuestring);
-	cJSON* bookCont = GetRoot(bookName);
-
+SDL_Texture* RenderChapter(TTF_Font* font, int fontSize, cJSON* books, ezxml_t xmlBible, int bookNumber, int chapter, SDL_Colour colour, int lineWidth) {
 	char bookChapterName[50];
 	snprintf(bookChapterName, 50, "%s %d", cJSON_GetArrayItem(books, bookNumber)->valuestring, chapter);
 
@@ -95,36 +91,37 @@ SDL_Texture* RenderChapter(TTF_Font* font, int fontSize, cJSON* books, int bookN
 	SDL_Texture* header = SDL_CreateTextureFromSurface(globalWindow->renderer, surf);
 	SDL_FreeSurface(surf);
 
-	if (strcmp(cJSON_GetObjectItem(bookCont, "book")->valuestring, cJSON_GetArrayItem(books, bookNumber)->valuestring) != 0) {
-		fprintf(stderr, "Error: %s and %s are NOT the same book!", cJSON_GetObjectItem(bookCont, "book")->valuestring, cJSON_GetArrayItem(books, bookNumber)->valuestring);
+	if (strcmp(ezxml_attr(ezxml_idx(ezxml_child(xmlBible, "b"), bookNumber), "n"), cJSON_GetArrayItem(books, bookNumber)->valuestring) != 0) {
+		fprintf(stderr, "Error: %s and %s are NOT the same book!", ezxml_attr(ezxml_idx(ezxml_child(xmlBible, "b"), bookNumber), "n"), cJSON_GetArrayItem(books, bookNumber)->valuestring);
 		return NULL;
 	}
 
-	cJSON* jsonChapter = cJSON_GetArrayItem(cJSON_GetObjectItem(bookCont, "chapters"), chapter - 1);
-	if (!jsonChapter) {
+	ezxml_t xmlBook = ezxml_idx(ezxml_child(xmlBible, "b"), bookNumber);
+	ezxml_t xmlChapter = ezxml_idx(ezxml_child(xmlBook, "c"), chapter - 1);
+	if (!xmlChapter) {
 		fprintf(stderr, "Error: No chapter %d!", chapter);
 	}
 
-	cJSON* jsonVerses = cJSON_GetObjectItem(jsonChapter, "verses");
-	int numVerses = cJSON_GetArraySize(jsonVerses);
+	int numVerses;
+	for (numVerses = 0; ezxml_idx(ezxml_child(xmlChapter, "v"), numVerses); numVerses++);
 
 	char* text = NULL;
 	int textSize = 0;
 
 	for (int i = 0; i < numVerses; i++) {
-		cJSON* jsonVerse = cJSON_GetArrayItem(jsonVerses, i);
-		int verseNumber = atoi(cJSON_GetObjectItem(jsonVerse, "verse")->valuestring);
+		ezxml_t xmlVerse = ezxml_idx(ezxml_child(xmlChapter, "v"), i);
+		int verseNumber = atoi(ezxml_attr(xmlVerse, "n"));
 		char digits[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
 		Superscript(verseNumber, digits);
 
-		text = (char*)realloc(text, sizeof(char) * (strlen(cJSON_GetObjectItem(jsonVerse, "text")->valuestring) + textSize + strlen(digits) + 2));
-		textSize += (strlen(cJSON_GetObjectItem(jsonVerse, "text")->valuestring) + strlen(digits) + 2);
+		text = (char*)realloc(text, sizeof(char) * (strlen(xmlVerse->txt) + textSize + strlen(digits) + 2));
+		textSize += (strlen(xmlVerse->txt) + strlen(digits) + 2);
 		if (!text) {
 			fprintf(stderr, "Error: allocating Bible text failed");
 			break;
 		}
 
-		snprintf(text, textSize, "%s%s%s ", text, digits, cJSON_GetObjectItem(jsonVerse, "text")->valuestring);
+		snprintf(text, textSize, "%s%s%s ", text, digits, xmlVerse->txt);
 	}
 
 	TTF_SetFontSize(font, fontSize);
@@ -151,7 +148,6 @@ SDL_Texture* RenderChapter(TTF_Font* font, int fontSize, cJSON* books, int bookN
 	SDL_DestroyTexture(mainTextTex);
 	memset(text, 0, textSize);
 	free(text);
-	cJSON_Delete(bookCont);
 	SDL_SetRenderTarget(globalWindow->renderer, NULL);
 	return dstTex;
 }
@@ -163,31 +159,26 @@ void CloseBook(Book* book) {
 	free(book->chapters);
 }
 
-void OpenBook(Book* dstBook, TTF_Font* font, int fontSize, int bookNumber, int textWrapWidth, cJSON* jsonBooks) {
-	char bookName[40];
-	snprintf(bookName, 40, "books/%s.json", cJSON_GetArrayItem(jsonBooks, bookNumber)->valuestring);
-	cJSON* jsonBook = GetRoot(bookName);
-
-	dstBook->numChapters = cJSON_GetArraySize(cJSON_GetObjectItem(jsonBook, "chapters"));
+void OpenBook(Book* dstBook, TTF_Font* font, int fontSize, int bookNumber, int textWrapWidth, cJSON* jsonBooks, ezxml_t xmlBible) {
+	ezxml_t xmlBook = ezxml_idx(ezxml_child(xmlBible, "b"), bookNumber);
+	for (dstBook->numChapters = 0; ezxml_idx(ezxml_child(xmlBook, "c"), dstBook->numChapters); dstBook->numChapters++);
 	dstBook->chapters = malloc(dstBook->numChapters * sizeof(Chapter));
 	if (dstBook->chapters == NULL) {
 		fprintf(stderr, "Error: Insufficient memory\n");
 		return;
 	}
 	for (int j = 0; j < dstBook->numChapters; j++) {
-		dstBook->chapters[j].tex.data = RenderChapter(font, fontSize, jsonBooks, bookNumber, j + 1, (SDL_Colour){0, 0, 0, 255}, textWrapWidth);
+		dstBook->chapters[j].tex.data = RenderChapter(font, fontSize, jsonBooks, xmlBible, bookNumber, j + 1, (SDL_Colour){0, 0, 0, 255}, textWrapWidth);
 		SDL_QueryTexture(dstBook->chapters[j].tex.data, NULL, NULL, &dstBook->chapters[j].tex.width, &dstBook->chapters[j].tex.height);
 	}
-
-	cJSON_Delete(jsonBook);
 }
 
-void RenderBookAndBooksBeside(TTF_Font* font, int fontSize, int textWrapWidth, Book* books, int bookNumber, cJSON* jsonBooks) {
-	OpenBook(&books[bookNumber], font, fontSize, bookNumber, textWrapWidth, jsonBooks);
+void RenderBookAndBooksBeside(TTF_Font* font, int fontSize, int textWrapWidth, Book* books, int bookNumber, cJSON* jsonBooks, ezxml_t xmlBible) {
+	OpenBook(&books[bookNumber], font, fontSize, bookNumber, textWrapWidth, jsonBooks, xmlBible);
 
 	if (bookNumber != 0) {
-		OpenBook(&books[bookNumber - 1], font, fontSize, bookNumber - 1, textWrapWidth, jsonBooks);
+		OpenBook(&books[bookNumber - 1], font, fontSize, bookNumber - 1, textWrapWidth, jsonBooks, xmlBible);
 	} if (bookNumber != 65) {
-		OpenBook(&books[bookNumber + 1], font, fontSize, bookNumber + 1, textWrapWidth, jsonBooks);
+		OpenBook(&books[bookNumber + 1], font, fontSize, bookNumber + 1, textWrapWidth, jsonBooks, xmlBible);
 	}
 }
