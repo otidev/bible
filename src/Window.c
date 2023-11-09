@@ -67,6 +67,7 @@ int InitCores(Window* window, int width, int height) {
 	}
 
 	TTF_Init();
+	IMG_Init(IMG_INIT_PNG);
 
 	window->window = SDL_CreateWindow("Bible", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
 	if (!window->window) {

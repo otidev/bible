@@ -27,21 +27,26 @@ int main() {
 	Window window;
 	if (InitCores(&window, 1280, 720)) return 1;
 	last = SDL_GetTicks64();
+
 	float magnifier = 1;
 	int origFontSize = 25;
-	TTF_Font* font = TTF_OpenFont("fonts/Cardo-Regular.ttf", origFontSize);
+	TTF_Font* font = TTF_OpenFont("../fonts/Cardo-Regular.ttf", origFontSize);
 	if (!font) {
 		fprintf(stderr, "Error: couldn't find font!");
 		return 0;
 	}
 
-	cJSON* jsonBooks = GetRoot("books/Books.json");
+	SDL_Surface* icon = IMG_Load("../icons/biblelogo.png");
+	SDL_SetWindowIcon(window.window, icon);
+	SDL_FreeSurface(icon);
+
+	cJSON* jsonBooks = GetRoot("../books/Books.json");
 	if (!jsonBooks) {
 		fprintf(stderr, "Error: couldn't find main file!");
 		return 0;
 	}
 
-	ezxml_t xmlBible = ezxml_parse_file("books/KJV.xml");
+	ezxml_t xmlBible = ezxml_parse_file("../books/KJV.xml");
 
 	Book books[66];
 	int usedBook = 42;
@@ -52,7 +57,7 @@ int main() {
 
 
 	TTF_SetFontSize(font, 20);
-	SDL_Surface* surf = TTF_RenderUTF8_Blended(font, "Enter book of the Bible:  ", (SDL_Colour){255, 255, 255, 255});
+	SDL_Surface* surf = TTF_RenderUTF8_Blended_Wrapped(font, "Enter Bible book and chapter (e.g. John 3):  ", (SDL_Colour){255, 255, 255, 255}, window.width);
 	TTF_SetFontSize(font, origFontSize);
 	SDL_Texture* lookupTex = SDL_CreateTextureFromSurface(globalWindow->renderer, surf);
 	int lookupTexWidth, lookupTexHeight;
@@ -88,7 +93,7 @@ int main() {
 		ScrollAndZoom(books, &magnifier, usedBook, chapter, &scrollAmount, font, origFontSize, wrapWidth, jsonBooks, xmlBible, &text);
 		ChangeChapter(books, &usedBook, &chapter, &textOffset, &scrollAmount, font, origFontSize, wrapWidth, jsonBooks, xmlBible, &text, &textTransition);
 
-		if (window.keys[SDL_SCANCODE_LCTRL] && (window.keys[SDL_SCANCODE_L] && !window.lastKeys[SDL_SCANCODE_L])) {
+		if (window.keys[SDL_SCANCODE_LCTRL] && (window.keys[SDL_SCANCODE_F] && !window.lastKeys[SDL_SCANCODE_F])) {
 			for (int i = 0; i < 500; i++)
 				window.textInput[i] = 0;
 			if (lookup) lookup = false; else lookup = true;
@@ -100,7 +105,7 @@ int main() {
 				srcTextColour = textColour;
 				dstTextColour = (SDL_Colour){0xff, 0xff, 0xff, 0xff};
 				srcBgColour = bgColour;
-				dstBgColour = (SDL_Colour){0x0b, 0x07, 0x05, 0xff};
+				dstBgColour = (SDL_Colour){0, 0, 0, 0xff};
 			} else {
 				srcTextColour = textColour;
 				dstTextColour = (SDL_Colour){0x00, 0x00, 0x00, 0xff};
@@ -151,7 +156,7 @@ int main() {
 		if ((lastWindowWidth != window.width) || (lastWindowHeight != window.height)) {
 			CloseBook(&books[usedBook]);
 			if (900 >= window.width)
-				wrapWidth = window.width - 40;
+				wrapWidth = window.width - 60;
 			else
 				wrapWidth = 900;
 			OpenBook(&books[usedBook], font, origFontSize, usedBook, wrapWidth, jsonBooks, xmlBible);
@@ -169,7 +174,7 @@ int main() {
 		if (lookup) {
 			TTF_SetFontSize(font, 20);
 			TTF_SetFontStyle(font, TTF_STYLE_ITALIC);
-			surf = TTF_RenderUTF8_Blended(font, window.textInput, (SDL_Colour){255, 255, 255, 255});
+			surf = TTF_RenderUTF8_Blended_Wrapped(font, window.textInput, (SDL_Colour){255, 255, 255, 255}, window.width);
 			inputTex = SDL_CreateTextureFromSurface(globalWindow->renderer, surf);
 			TTF_SetFontStyle(font, TTF_STYLE_NORMAL);
 			int inputTexWidth, inputTexHeight;
@@ -189,9 +194,18 @@ int main() {
 			if (window.keys[SDL_SCANCODE_RETURN]) {
 				lookup = false;
 				char* token;
+				// Get number of tokens before the chapter & verse
+				int count = 0;
+				char *ptr = window.textInput;
+				while((ptr = strchr(ptr, ' ')) != NULL) {
+					count++;
+					ptr++;
+				}
+				count++;
+
 				token = strtok(window.textInput, " ");
 				bool firstToken = true;
-				while (token) {
+				for (int i = 0; i < count - 1; i++) {
 					if (firstToken) {
 						snprintf(inputBook, 30, "%s", token);
 						firstToken = false;
@@ -200,13 +214,24 @@ int main() {
 					}
 					token = strtok(NULL, " ");
 				}
+
+				chapter = atoi(token) - 1;
+
 				for (int i = 0; i < 66; i++) {
 					if (strcmp(inputBook, cJSON_GetArrayItem(jsonBooks, i)->valuestring) == 0) {
-						CloseBook(&books[usedBook]);
-						usedBook = i;
-						chapter = 0;
-						OpenBook(&books[usedBook], font, origFontSize, usedBook, wrapWidth, jsonBooks, xmlBible);
+						if (usedBook == i) {
+							break;
+						} else {
+							CloseBook(&books[usedBook]);
+							usedBook = i;
+							OpenBook(&books[usedBook], font, origFontSize, usedBook, wrapWidth, jsonBooks, xmlBible);
+						}
+						break;
 					}
+				}
+
+				if (chapter >= books[usedBook].numChapters) {
+					chapter = 0;
 				}
 			}
 		}
@@ -262,6 +287,7 @@ int main() {
 	}
 
 	SDL_DestroyTexture(lookupTex);
+	SDL_DestroyTexture(inputTex);
 	CloseBook(&books[usedBook]);
 
 	ezxml_free(xmlBible);
