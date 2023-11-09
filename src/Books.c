@@ -82,12 +82,12 @@ cJSON* GetRoot(char* filename) {
 	return root;
 }
 
-SDL_Texture* RenderChapter(TTF_Font* font, int fontSize, cJSON* books, ezxml_t xmlBible, int bookNumber, int chapter, SDL_Colour colour, int lineWidth) {
+SDL_Texture* RenderChapter(TTF_Font* font, int fontSize, cJSON* books, ezxml_t xmlBible, int bookNumber, int chapter, int lineWidth) {
 	char bookChapterName[50];
 	snprintf(bookChapterName, 50, "%s %d", cJSON_GetArrayItem(books, bookNumber)->valuestring, chapter);
 
 	TTF_SetFontSize(font, fontSize * 2);
-	SDL_Surface* surf = TTF_RenderUTF8_Blended_Wrapped(font, bookChapterName, colour, lineWidth);
+	SDL_Surface* surf = TTF_RenderUTF8_Blended_Wrapped(font, bookChapterName, (SDL_Colour){0xff, 0xff, 0xff, 0xff}, lineWidth);
 	SDL_Texture* header = SDL_CreateTextureFromSurface(globalWindow->renderer, surf);
 	SDL_FreeSurface(surf);
 
@@ -125,7 +125,7 @@ SDL_Texture* RenderChapter(TTF_Font* font, int fontSize, cJSON* books, ezxml_t x
 	}
 
 	TTF_SetFontSize(font, fontSize);
-	surf = TTF_RenderUTF8_Blended_Wrapped(font, text, colour, lineWidth);
+	surf = TTF_RenderUTF8_Blended_Wrapped(font, text, (SDL_Colour){0xff, 0xff, 0xff, 0xff}, lineWidth);
 	SDL_Texture* mainTextTex = SDL_CreateTextureFromSurface(globalWindow->renderer, surf);
 	SDL_FreeSurface(surf);
 
@@ -137,7 +137,7 @@ SDL_Texture* RenderChapter(TTF_Font* font, int fontSize, cJSON* books, ezxml_t x
 	SDL_Texture* dstTex = SDL_CreateTexture(globalWindow->renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, lineWidth, mainTextTexHeight + headerHeight);
 
 	SDL_SetRenderTarget(globalWindow->renderer, dstTex);
-	SDL_SetRenderDrawColor(globalWindow->renderer, 0x00, 0x00, 0x00, 0x00);
+	SDL_SetRenderDrawColor(globalWindow->renderer, 0xff, 0xff, 0xff, 0x00);
 	SDL_SetTextureBlendMode(dstTex, SDL_BLENDMODE_BLEND);
 	SDL_RenderClear(globalWindow->renderer);
 
@@ -168,7 +168,7 @@ void OpenBook(Book* dstBook, TTF_Font* font, int fontSize, int bookNumber, int t
 		return;
 	}
 	for (int j = 0; j < dstBook->numChapters; j++) {
-		dstBook->chapters[j].tex.data = RenderChapter(font, fontSize, jsonBooks, xmlBible, bookNumber, j + 1, (SDL_Colour){0, 0, 0, 255}, textWrapWidth);
+		dstBook->chapters[j].tex.data = RenderChapter(font, fontSize, jsonBooks, xmlBible, bookNumber, j + 1, textWrapWidth);
 		SDL_QueryTexture(dstBook->chapters[j].tex.data, NULL, NULL, &dstBook->chapters[j].tex.width, &dstBook->chapters[j].tex.height);
 	}
 }

@@ -5,7 +5,7 @@
 
 cJSON* GetRoot(char* filename);
 
-SDL_Texture* RenderChapter(TTF_Font* font, int fontSize, cJSON* books, ezxml_t xmlBible, int bookNumber, int chapter, SDL_Colour colour, int lineWidth);
+SDL_Texture* RenderChapter(TTF_Font* font, int fontSize, cJSON* books, ezxml_t xmlBible, int bookNumber, int chapter, int lineWidth);
 
 void CloseBook(Book* book);
 

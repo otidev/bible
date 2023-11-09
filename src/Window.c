@@ -39,6 +39,16 @@ bool WindowIsOpen() {
 			case SDL_TEXTINPUT:
 				strcat(globalWindow->textInput, globalWindow->event.text.text);
 				break;
+			case SDL_WINDOWEVENT:
+				if (globalWindow->event.window.windowID == SDL_GetWindowID(globalWindow->window)) {
+					switch (globalWindow->event.window.event) {
+						case SDL_WINDOWEVENT_SIZE_CHANGED:
+							globalWindow->width = globalWindow->event.window.data1;
+							globalWindow->height = globalWindow->event.window.data2;
+							break;
+					}
+				}
+				break;
 		}
 	}
 
@@ -58,7 +68,7 @@ int InitCores(Window* window, int width, int height) {
 
 	TTF_Init();
 
-	window->window = SDL_CreateWindow("Bible", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, SDL_WINDOW_SHOWN);
+	window->window = SDL_CreateWindow("Bible", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
 	if (!window->window) {
 		fprintf(stderr, "Error: Could not create an SDL Window.");
 		return 1;

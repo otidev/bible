@@ -52,7 +52,7 @@ int main() {
 
 
 	TTF_SetFontSize(font, 20);
-	SDL_Surface* surf = TTF_RenderUTF8_Blended(font, "Enter book of the Bible:  ", (SDL_Colour){0, 0, 0, 255});
+	SDL_Surface* surf = TTF_RenderUTF8_Blended(font, "Enter book of the Bible:  ", (SDL_Colour){255, 255, 255, 255});
 	TTF_SetFontSize(font, origFontSize);
 	SDL_Texture* lookupTex = SDL_CreateTextureFromSurface(globalWindow->renderer, surf);
 	int lookupTexWidth, lookupTexHeight;
@@ -65,7 +65,18 @@ int main() {
 	InitTimer(&text, 0.4);
 	Timer textTransition;
 	InitTimer(&textTransition, 0.7);
+	Timer darkLightTransition;
+	InitTimer(&darkLightTransition, 0.7);
+	bool darkMode = false;
+	SDL_Colour textColour = (SDL_Colour){0x00, 0x00, 0x00, 0xff};
+	SDL_Colour srcTextColour = (SDL_Colour){0x00, 0x00, 0x00, 0xff};
+	SDL_Colour dstTextColour = (SDL_Colour){0x00, 0x00, 0x00, 0xff};
+	SDL_Colour bgColour = (SDL_Colour){0xff, 0xfd, 0xd0, 0xff};
+	SDL_Colour srcBgColour = (SDL_Colour){0x00, 0x00, 0x00, 0xff};
+	SDL_Colour dstBgColour = (SDL_Colour){0xff, 0xfd, 0xd0, 0xff};
 	char inputBook[30];
+	int lastWindowWidth = window.width;
+	int lastWindowHeight = window.height;
 	float textOffset = 0;
 	bool lookup = false;
 
@@ -81,6 +92,22 @@ int main() {
 			for (int i = 0; i < 500; i++)
 				window.textInput[i] = 0;
 			if (lookup) lookup = false; else lookup = true;
+		}
+
+		if (window.keys[SDL_SCANCODE_LCTRL] && (window.keys[SDL_SCANCODE_D] && !window.lastKeys[SDL_SCANCODE_D])) {
+			if (darkMode) darkMode = false; else darkMode = true;
+			if (darkMode) {
+				srcTextColour = textColour;
+				dstTextColour = (SDL_Colour){0xff, 0xff, 0xff, 0xff};
+				srcBgColour = bgColour;
+				dstBgColour = (SDL_Colour){0x0b, 0x07, 0x05, 0xff};
+			} else {
+				srcTextColour = textColour;
+				dstTextColour = (SDL_Colour){0x00, 0x00, 0x00, 0xff};
+				srcBgColour = bgColour;
+				dstBgColour = (SDL_Colour){0xff, 0xfd, 0xd0, 0xff};
+			}
+			darkLightTransition.timePlayed = 0;
 		}
 
 
@@ -100,6 +127,20 @@ int main() {
 			textOffset = textTransition.end;
 		}
 
+		if ((textColour.r != dstTextColour.r || textColour.g != dstTextColour.g || textColour.b != dstTextColour.b) || (bgColour.r != dstBgColour.r || bgColour.g != dstBgColour.g || bgColour.b != dstBgColour.b)) {
+			textColour.r = Lerp(srcTextColour.r, dstTextColour.r, 1 - pow(1 - (darkLightTransition.timePlayed / darkLightTransition.duration), 2));
+			textColour.g = Lerp(srcTextColour.g, dstTextColour.g, 1 - pow(1 - (darkLightTransition.timePlayed / darkLightTransition.duration), 2));
+			textColour.b = Lerp(srcTextColour.b, dstTextColour.b, 1 - pow(1 - (darkLightTransition.timePlayed / darkLightTransition.duration), 2));
+			bgColour.r = Lerp(srcBgColour.r, dstBgColour.r, 1 - pow(1 - (darkLightTransition.timePlayed / darkLightTransition.duration), 2));
+			bgColour.g = Lerp(srcBgColour.g, dstBgColour.g, 1 - pow(1 - (darkLightTransition.timePlayed / darkLightTransition.duration), 2));
+			bgColour.b = Lerp(srcBgColour.b, dstBgColour.b, 1 - pow(1 - (darkLightTransition.timePlayed / darkLightTransition.duration), 2));
+			darkLightTransition.timePlayed += window.deltaTime;
+		} if (darkLightTransition.timePlayed >= darkLightTransition.duration) {
+			darkLightTransition.timePlayed = 0;
+			textColour.r = dstTextColour.r; textColour.g = dstTextColour.g; textColour.b = dstTextColour.b;
+			bgColour.r = dstBgColour.r; bgColour.g = dstBgColour.g; bgColour.b = dstBgColour.b;
+		}
+
 		if (scrollAmount > window.height / 2) {
 			scrollAmount = text.end = window.height / 2;
 			text.timePlayed = 0;
@@ -107,17 +148,34 @@ int main() {
 			scrollAmount = text.end = -books[usedBook].chapters[chapter].tex.height + window.height / 2;
 		}
 
-		SDL_SetRenderDrawColor(window.renderer, 0xff, 0xfd, 0xd0, 0xff);
+		if ((lastWindowWidth != window.width) || (lastWindowHeight != window.height)) {
+			CloseBook(&books[usedBook]);
+			if (900 >= window.width)
+				wrapWidth = window.width - 40;
+			else
+				wrapWidth = 900;
+			OpenBook(&books[usedBook], font, origFontSize, usedBook, wrapWidth, jsonBooks, xmlBible);
+			if (lastWindowWidth != window.width) {
+				lastWindowWidth = window.width;
+			} if (lastWindowHeight != window.height) {
+				lastWindowHeight = window.height;
+			}
+
+		}
+
+		SDL_SetRenderDrawColor(window.renderer, bgColour.r, bgColour.g, bgColour.b, 0xff);
 		SDL_RenderClear(window.renderer);
 
 		if (lookup) {
 			TTF_SetFontSize(font, 20);
 			TTF_SetFontStyle(font, TTF_STYLE_ITALIC);
-			surf = TTF_RenderUTF8_Blended(font, window.textInput, (SDL_Colour){0, 0, 0, 255});
+			surf = TTF_RenderUTF8_Blended(font, window.textInput, (SDL_Colour){255, 255, 255, 255});
 			inputTex = SDL_CreateTextureFromSurface(globalWindow->renderer, surf);
 			TTF_SetFontStyle(font, TTF_STYLE_NORMAL);
 			int inputTexWidth, inputTexHeight;
 			SDL_QueryTexture(inputTex, NULL, NULL, &inputTexWidth, &inputTexHeight);
+			SDL_SetTextureColorMod(lookupTex, textColour.r, textColour.g, textColour.b);
+			SDL_SetTextureColorMod(inputTex, textColour.r, textColour.g, textColour.b);
 			SDL_RenderCopyF(window.renderer, lookupTex, NULL, &(SDL_FRect){5, 40 / 2 - lookupTexHeight / 2, lookupTexWidth, lookupTexHeight});
 			SDL_RenderCopyF(window.renderer, inputTex, NULL, &(SDL_FRect){lookupTexWidth, 40 / 2 - inputTexHeight / 2, inputTexWidth, inputTexHeight});
 			if (window.keys[SDL_SCANCODE_BACKSPACE]) {
@@ -153,6 +211,7 @@ int main() {
 			}
 		}
 
+		SDL_SetTextureColorMod(books[usedBook].chapters[chapter].tex.data, textColour.r, textColour.g, textColour.b);
 		SDL_RenderCopyF(window.renderer, books[usedBook].chapters[chapter].tex.data, NULL, &(SDL_FRect){window.width / 2 - (books[usedBook].chapters[chapter].tex.width) / 2 - (textOffset), scrollAmount, books[usedBook].chapters[chapter].tex.width, books[usedBook].chapters[chapter].tex.height});
 
 		if (textOffset < textTransition.end) {
@@ -204,6 +263,8 @@ int main() {
 
 	SDL_DestroyTexture(lookupTex);
 	CloseBook(&books[usedBook]);
+
+	ezxml_free(xmlBible);
 
 	SDL_DestroyWindow(window.window);
 	TTF_CloseFont(font);
