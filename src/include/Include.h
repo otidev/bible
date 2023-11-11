@@ -68,6 +68,23 @@ typedef struct Book {
 	Chapter* chapters;
 } Book;
 
+typedef struct BibleData {
+	int usedBook;
+	int wrapWidth;
+	int chapter;
+	float magnifier;
+	int origFontSize;
+	bool darkMode;
+	float scrollAmount;
+	float textOffset;
+	SDL_Colour textColour;
+	SDL_Colour srcTextColour; // Used for timing
+	SDL_Colour dstTextColour; // Used for timing
+	SDL_Colour bgColour;
+	SDL_Colour srcBgColour; // Used for timing
+	SDL_Colour dstBgColour; // Used for timing
+} BibleData;
+
 extern Window* globalWindow;
 
 #endif

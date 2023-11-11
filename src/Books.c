@@ -1,6 +1,6 @@
 #include "Books.h"
 
-static void Superscript(int number, char* string) {
+void Superscript(int number, char* string) {
 	// Dude NONE OF THIS CODE MAKES SENSE.
 	int advance = 0;
 
@@ -82,21 +82,17 @@ cJSON* GetRoot(char* filename) {
 	return root;
 }
 
-SDL_Texture* RenderChapter(TTF_Font* font, int fontSize, cJSON* books, ezxml_t xmlBible, int bookNumber, int chapter, int lineWidth) {
+SDL_Texture* RenderChapter(TTF_Font* font, BibleData* data, cJSON* books, ezxml_t xmlBible, int chapter) {
 	char bookChapterName[50];
-	snprintf(bookChapterName, 50, "%s %d", cJSON_GetArrayItem(books, bookNumber)->valuestring, chapter);
+	snprintf(bookChapterName, 50, "%s %d", cJSON_GetArrayItem(books, data->usedBook)->valuestring, chapter);
 
+	float fontSize = (int)round(data->origFontSize * data->magnifier);
 	TTF_SetFontSize(font, fontSize * 2);
-	SDL_Surface* surf = TTF_RenderUTF8_Blended_Wrapped(font, bookChapterName, (SDL_Colour){0xff, 0xff, 0xff, 0xff}, lineWidth);
+	SDL_Surface* surf = TTF_RenderUTF8_Blended_Wrapped(font, bookChapterName, (SDL_Colour){0xff, 0xff, 0xff, 0xff}, data->wrapWidth);
 	SDL_Texture* header = SDL_CreateTextureFromSurface(globalWindow->renderer, surf);
 	SDL_FreeSurface(surf);
 
-	if (strcmp(ezxml_attr(ezxml_idx(ezxml_child(xmlBible, "b"), bookNumber), "n"), cJSON_GetArrayItem(books, bookNumber)->valuestring) != 0) {
-		fprintf(stderr, "Error: %s and %s are NOT the same book!", ezxml_attr(ezxml_idx(ezxml_child(xmlBible, "b"), bookNumber), "n"), cJSON_GetArrayItem(books, bookNumber)->valuestring);
-		return NULL;
-	}
-
-	ezxml_t xmlBook = ezxml_idx(ezxml_child(xmlBible, "b"), bookNumber);
+	ezxml_t xmlBook = ezxml_idx(ezxml_child(xmlBible, "b"), data->usedBook);
 	ezxml_t xmlChapter = ezxml_idx(ezxml_child(xmlBook, "c"), chapter - 1);
 	if (!xmlChapter) {
 		fprintf(stderr, "Error: No chapter %d!", chapter);
@@ -126,7 +122,7 @@ SDL_Texture* RenderChapter(TTF_Font* font, int fontSize, cJSON* books, ezxml_t x
 	}
 
 	TTF_SetFontSize(font, fontSize);
-	surf = TTF_RenderUTF8_Blended_Wrapped(font, text, (SDL_Colour){0xff, 0xff, 0xff, 0xff}, lineWidth);
+	surf = TTF_RenderUTF8_Blended_Wrapped(font, text, (SDL_Colour){0xff, 0xff, 0xff, 0xff}, data->wrapWidth);
 	SDL_Texture* mainTextTex = SDL_CreateTextureFromSurface(globalWindow->renderer, surf);
 	SDL_FreeSurface(surf);
 
@@ -135,14 +131,14 @@ SDL_Texture* RenderChapter(TTF_Font* font, int fontSize, cJSON* books, ezxml_t x
 
 	int mainTextTexWidth, mainTextTexHeight;
 	SDL_QueryTexture(mainTextTex, NULL, NULL, &mainTextTexWidth, &mainTextTexHeight);
-	SDL_Texture* dstTex = SDL_CreateTexture(globalWindow->renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, lineWidth, mainTextTexHeight + headerHeight);
+	SDL_Texture* dstTex = SDL_CreateTexture(globalWindow->renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, data->wrapWidth, mainTextTexHeight + headerHeight);
 
 	SDL_SetRenderTarget(globalWindow->renderer, dstTex);
 	SDL_SetRenderDrawColor(globalWindow->renderer, 0xff, 0xff, 0xff, 0x00);
 	SDL_SetTextureBlendMode(dstTex, SDL_BLENDMODE_BLEND);
 	SDL_RenderClear(globalWindow->renderer);
 
-	SDL_RenderCopy(globalWindow->renderer, header, NULL, &(SDL_Rect){lineWidth / 2 - headerWidth / 2, 0, headerWidth, headerHeight});
+	SDL_RenderCopy(globalWindow->renderer, header, NULL, &(SDL_Rect){data->wrapWidth / 2 - headerWidth / 2, 0, headerWidth, headerHeight});
 	SDL_RenderCopy(globalWindow->renderer, mainTextTex, NULL, &(SDL_Rect){0, headerHeight, mainTextTexWidth, mainTextTexHeight});
 
 	SDL_DestroyTexture(header);
@@ -160,8 +156,8 @@ void CloseBook(Book* book) {
 	free(book->chapters);
 }
 
-void OpenBook(Book* dstBook, TTF_Font* font, int fontSize, int bookNumber, int textWrapWidth, cJSON* jsonBooks, ezxml_t xmlBible) {
-	ezxml_t xmlBook = ezxml_idx(ezxml_child(xmlBible, "b"), bookNumber);
+void OpenBook(Book* dstBook, TTF_Font* font, BibleData* data, cJSON* jsonBooks, ezxml_t xmlBible) {
+	ezxml_t xmlBook = ezxml_idx(ezxml_child(xmlBible, "b"), data->usedBook);
 	for (dstBook->numChapters = 0; ezxml_idx(ezxml_child(xmlBook, "c"), dstBook->numChapters); dstBook->numChapters++);
 	dstBook->chapters = malloc(dstBook->numChapters * sizeof(Chapter));
 	if (dstBook->chapters == NULL) {
@@ -169,17 +165,7 @@ void OpenBook(Book* dstBook, TTF_Font* font, int fontSize, int bookNumber, int t
 		return;
 	}
 	for (int j = 0; j < dstBook->numChapters; j++) {
-		dstBook->chapters[j].tex.data = RenderChapter(font, fontSize, jsonBooks, xmlBible, bookNumber, j + 1, textWrapWidth);
+		dstBook->chapters[j].tex.data = RenderChapter(font, data, jsonBooks, xmlBible, j + 1);
 		SDL_QueryTexture(dstBook->chapters[j].tex.data, NULL, NULL, &dstBook->chapters[j].tex.width, &dstBook->chapters[j].tex.height);
-	}
-}
-
-void RenderBookAndBooksBeside(TTF_Font* font, int fontSize, int textWrapWidth, Book* books, int bookNumber, cJSON* jsonBooks, ezxml_t xmlBible) {
-	OpenBook(&books[bookNumber], font, fontSize, bookNumber, textWrapWidth, jsonBooks, xmlBible);
-
-	if (bookNumber != 0) {
-		OpenBook(&books[bookNumber - 1], font, fontSize, bookNumber - 1, textWrapWidth, jsonBooks, xmlBible);
-	} if (bookNumber != 65) {
-		OpenBook(&books[bookNumber + 1], font, fontSize, bookNumber + 1, textWrapWidth, jsonBooks, xmlBible);
 	}
 }
