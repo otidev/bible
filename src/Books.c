@@ -84,7 +84,7 @@ cJSON* GetRoot(char* filename) {
 
 SDL_Texture* RenderChapter(TTF_Font* font, BibleData* data, cJSON* books, ezxml_t xmlBible, int chapter) {
 	char bookChapterName[50];
-	snprintf(bookChapterName, 50, "%s %d", cJSON_GetArrayItem(books, data->usedBook)->valuestring, chapter);
+	snprintf(bookChapterName, 50, "%s %d", cJSON_GetArrayItem(cJSON_GetObjectItem(books, data->lang), data->usedBook)->valuestring, chapter);
 
 	float fontSize = (int)round(data->origFontSize * data->magnifier);
 	TTF_SetFontSize(font, fontSize * 2);

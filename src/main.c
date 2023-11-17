@@ -23,6 +23,114 @@ void InitTimer(Timer* timer, float duration) {
 	timer->start = timer->end = 0;
 }
 
+void HighlightVerse(Highlight* highlighter, BibleData* data, ezxml_t xmlBible, TTF_Font* font, Book* books) {
+	int textHeight;
+	TTF_SizeUTF8(font, "", NULL, &textHeight);
+	if (highlighter->width < 0) {
+		ezxml_t xmlBook = ezxml_idx(ezxml_child(xmlBible, "b"), highlighter->book);
+		if (!xmlBook) {
+			fprintf(stderr, "Error: No book %d!", highlighter->book);
+			return;
+		}
+
+		ezxml_t xmlChapter = ezxml_idx(ezxml_child(xmlBook, "c"), highlighter->chapter);
+		if (!xmlChapter) {
+			fprintf(stderr, "Error: No chapter %d!", highlighter->chapter);
+			return;
+		}
+
+		char* dText = NULL;
+		int dTextSize = 0;
+
+		for (int i = 0; i < highlighter->verse; i++) {
+			ezxml_t xmlVerse = ezxml_idx(ezxml_child(xmlChapter, "v"), i);
+			int verseNumber = atoi(ezxml_attr(xmlVerse, "n"));
+			char digits[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
+			Superscript(verseNumber, digits);
+
+			dText = (char*)realloc(dText, sizeof(char) * (strlen(xmlVerse->txt) + dTextSize + strlen(digits) + 2));
+			dTextSize += (strlen(xmlVerse->txt) + strlen(digits) + 2);
+			if (i == 0) memset(dText, 0, dTextSize);
+			if (!dText) {
+				fprintf(stderr, "Error: allocating Bible text failed");
+				return;
+			}
+			snprintf(dText, dTextSize, "%s%s%s ", dText, digits, xmlVerse->txt);
+		}
+		int height;
+
+		highlighter->offset = 0;
+		if (highlighter->verse) {
+			TTF_SetFontSize(font, (int)round(data->origFontSize * data->magnifier));
+			TTF_SizeText(font, dText, &highlighter->offset, &height);
+		}
+
+		ezxml_t xmlVerse = ezxml_idx(ezxml_child(xmlChapter, "v"), highlighter->verse);
+		int verseNumber = atoi(ezxml_attr(xmlVerse, "n"));
+		char digits[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
+		Superscript(verseNumber, digits);
+		free(dText);
+
+		dText = (char*)realloc(NULL, sizeof(char) * (strlen(xmlVerse->txt) + dTextSize + strlen(digits) + 2));
+		dTextSize += (strlen(xmlVerse->txt) + strlen(digits) + 2);
+		memset(dText, 0, dTextSize);
+		if (!dText) {
+			fprintf(stderr, "Error: allocating Bible text failed");
+			return;
+		}
+		snprintf(dText, dTextSize, "%s%s%s ", dText, digits, xmlVerse->txt);
+
+		TTF_SetFontSize(font, (int)round(data->origFontSize * data->magnifier));
+		TTF_SizeText(font, dText, &highlighter->width, &height);
+	}
+
+	int counter = 0, lines = 0, pixels = 0, linesToSkip = 0, pixelsToSkip = 0;
+	while (counter != highlighter->width) {
+		pixels++;
+		if (pixels == data->wrapWidth) {
+			lines++;
+			pixels = 0;
+		}
+
+		counter++;
+	}
+
+	counter = 0;
+	while (counter != highlighter->offset) {
+		pixelsToSkip++;
+		if (pixelsToSkip == data->wrapWidth) {
+			linesToSkip++;
+			pixelsToSkip = 0;
+		}
+
+		counter++;
+	}
+	SDL_SetRenderDrawBlendMode(globalWindow->renderer, SDL_BLENDMODE_BLEND);
+	SDL_SetRenderDrawColor(globalWindow->renderer, highlighter->colour.r, highlighter->colour.g, highlighter->colour.b, highlighter->colour.a);
+	for (int i = 0; i < lines; i++) {
+		SDL_RenderFillRect(
+			globalWindow->renderer,
+			&(SDL_Rect){
+				globalWindow->width / 2 - (books[data->usedBook].chapters[data->chapter].tex.width) / 2 - (data->textOffset),
+				data->scrollAmount + (textHeight * 2) + (textHeight * i),
+				data->wrapWidth,
+				textHeight
+			}
+		);
+	}
+	SDL_RenderFillRect(
+		globalWindow->renderer,
+		&(SDL_Rect){
+			globalWindow->width / 2 - (books[data->usedBook].chapters[data->chapter].tex.width) / 2 - (data->textOffset) + pixelsToSkip,
+			data->scrollAmount + textHeight * 2 + (textHeight * (lines + linesToSkip)),
+			pixels,
+			textHeight
+		}
+	);
+	SDL_SetRenderDrawBlendMode(globalWindow->renderer, SDL_BLENDMODE_NONE);
+	SDL_SetRenderDrawColor(globalWindow->renderer, data->bgColour.r, data->bgColour.g, data->bgColour.b, 0xff);
+}
+
 int main() {
 	Window window;
 	if (InitCores(&window, 1280, 720)) return 1;
@@ -61,13 +169,20 @@ int main() {
 	}
 
 	ezxml_t xmlBible = ezxml_parse_file("../books/KJV.xml");
+	snprintf(d.lang, 3, "%s", ezxml_attr(xmlBible, "lang"));
 
 	Book books[66];
 
-	OpenBook(&books[d.usedBook], font, &d, jsonBooks, xmlBible);
+	Highlight highlighter;
+	highlighter.width = -1;
+	highlighter.book = 42;
+	highlighter.chapter = 0;
+	highlighter.verse = 0;
+	highlighter.colour = (SDL_Colour){0x00, 0x00, 0x00, 0x3f};
 
+	OpenBook(&books[d.usedBook], font, &d, jsonBooks, xmlBible);
 	TTF_SetFontSize(font, 20);
-	SDL_Surface* surf = TTF_RenderUTF8_Blended_Wrapped(font, "Enter Bible verse (e.g. John 3 16):  ", (SDL_Colour){255, 255, 255, 255}, window.width);
+	SDL_Surface* surf = TTF_RenderUTF8_Blended_Wrapped(font, "Enter Bible verse (format: book chapter verse):  ", (SDL_Colour){255, 255, 255, 255}, window.width);
 	TTF_SetFontSize(font, d.origFontSize);
 	SDL_Texture* lookupTex = SDL_CreateTextureFromSurface(globalWindow->renderer, surf);
 	int lookupTexWidth, lookupTexHeight;
@@ -83,6 +198,7 @@ int main() {
 	int lastWindowWidth = window.width;
 	int lastWindowHeight = window.height;
 	bool lookup = false;
+	bool highlightVerse = true;
 
 	while (WindowIsOpen()) {
 		now = SDL_GetTicks64();
@@ -168,11 +284,29 @@ int main() {
 
 		}
 
+		if (d.textOffset == textTransition.end && textTransition.start != textTransition.end) {
+			if (textTransition.start > textTransition.end && d.chapter + 1 >= books[d.usedBook].numChapters) {
+				CloseBook(&books[d.usedBook + 1]);
+			} if (textTransition.start < textTransition.end && d.chapter - 1 < 0) {
+				CloseBook(&books[d.usedBook - 1]);
+			}
+			textTransition.start = textTransition.end = 0;
+		}
+
 		SDL_SetRenderDrawColor(window.renderer, d.bgColour.r, d.bgColour.g, d.bgColour.b, 0xff);
 		SDL_RenderClear(window.renderer);
 
 		SDL_SetTextureColorMod(books[d.usedBook].chapters[d.chapter].tex.data, d.textColour.r, d.textColour.g, d.textColour.b);
 		SDL_RenderCopyF(window.renderer, books[d.usedBook].chapters[d.chapter].tex.data, NULL, &(SDL_FRect){window.width / 2 - (books[d.usedBook].chapters[d.chapter].tex.width) / 2 - (d.textOffset), d.scrollAmount, books[d.usedBook].chapters[d.chapter].tex.width, books[d.usedBook].chapters[d.chapter].tex.height});
+
+		if (lookup) {
+			highlightVerse = true;
+			SearchVerse(&highlighter, &lookup, books, font, &d, jsonBooks, xmlBible, &text, lookupTexWidth, lookupTexHeight, lookupTex);
+		}
+
+		if (highlightVerse) {
+			HighlightVerse(&highlighter, &d, xmlBible, font, books);
+		}
 
 		if (d.textOffset < textTransition.end) {
 			if (d.chapter - 1 < 0) {
@@ -207,19 +341,6 @@ int main() {
 					&(SDL_FRect){window.width / 2 - (books[d.usedBook].chapters[d.chapter + 1].tex.width) / 2 - (d.textOffset - window.width), d.scrollAmount, books[d.usedBook].chapters[d.chapter + 1].tex.width, books[d.usedBook].chapters[d.chapter + 1].tex.height}
 				);
 			}
-		}
-
-		if (d.textOffset == textTransition.end && textTransition.start != textTransition.end) {
-			if (textTransition.start > textTransition.end && d.chapter + 1 >= books[d.usedBook].numChapters) {
-				CloseBook(&books[d.usedBook + 1]);
-			} if (textTransition.start < textTransition.end && d.chapter - 1 < 0) {
-				CloseBook(&books[d.usedBook - 1]);
-			}
-			textTransition.start = textTransition.end = 0;
-		}
-
-		if (lookup) {
-			SearchVerse(&lookup, books, font, &d, jsonBooks, xmlBible, &text, lookupTexWidth, lookupTexHeight, lookupTex);
 		}
 
 		SDL_RenderPresent(window.renderer);

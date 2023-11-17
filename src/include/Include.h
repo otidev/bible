@@ -83,7 +83,17 @@ typedef struct BibleData {
 	SDL_Colour bgColour;
 	SDL_Colour srcBgColour; // Used for timing
 	SDL_Colour dstBgColour; // Used for timing
+	char lang[4];
 } BibleData;
+
+typedef struct Highlight {
+	int verse;
+	int book;
+	int chapter;
+	int offset;
+	int width;
+	SDL_Colour colour;
+} Highlight;
 
 extern Window* globalWindow;
 

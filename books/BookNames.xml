@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<BookNames>
+  <book code="MAT" abbr="Matt" short="Matteus" long="Evangeliet etter Matteus" alt="" />
+  <book code="MRK" abbr="Mark" short="Markus" long="Evangeliet etter Markus" alt="" />
+  <book code="LUK" abbr="Luk" short="Lukas" long="Evangeliet etter Lukas" alt="" />
+  <book code="JHN" abbr="Joh" short="Johannes" long="Evangeliet etter Johannes" alt="" />
+  <book code="ACT" abbr="Apg" short="Apostlenes gjerninger" long="Apostlenes gjerninger" alt="" />
+  <book code="ROM" abbr="Rom" short="Romerne" long="Paulus’ brev til romerne" alt="" />
+  <book code="1CO" abbr="1 Kor" short="1. Korinter" long="Paulus’ første brev til korinterne" alt="" />
+  <book code="2CO" abbr="2 Kor" short="2. Korinter" long="Paulus’ andre brev til korinterne" alt="" />
+  <book code="GAL" abbr="Gal" short="Galaterne" long="Paulus’ brev til galaterne" alt="" />
+  <book code="EPH" abbr="Ef" short="Efeserne" long="Paulus’ brev til efeserne" alt="" />
+  <book code="PHP" abbr="Fil" short="Filipperne" long="Paulus’ brev til filipperne" alt="" />
+  <book code="COL" abbr="Kol" short="Kolosserne" long="Paulus’ brev til kolosserne" alt="" />
+  <book code="1TH" abbr="1 Tess" short="1. Tessaloniker" long="Paulus’ første brev til tessalonikerne" alt="" />
+  <book code="2TH" abbr="2 Tess" short="2. Tessaloniker" long="Paulus’ andre brev til tessalonikerne" alt="" />
+  <book code="1TI" abbr="1 Tim" short="1. Timoteus" long="Paulus’ første brev til Timoteus" alt="" />
+  <book code="2TI" abbr="2 Tim" short="2. Timoteus" long="Paulus’ andre brev til Timoteus" alt="" />
+  <book code="TIT" abbr="Tit" short="Titus" long="Paulus’ brev til Titus" alt="" />
+  <book code="PHM" abbr="Filem" short="Filemon" long="Paulus’ brev til Filemon" alt="" />
+  <book code="HEB" abbr="Hebr" short="Hebreerne" long="Brevet til hebreerne" alt="" />
+  <book code="JAS" abbr="Jak" short="Jakob" long="Jakobs brev" alt="" />
+  <book code="1PE" abbr="1 Pet" short="1. Peter" long="Peters første brev" alt="" />
+  <book code="2PE" abbr="2 Pet" short="2. Peter" long="Peters andre brev" alt="" />
+  <book code="1JN" abbr="1 Joh" short="1. Johannes" long="Johannes’ første brev" alt="" />
+  <book code="2JN" abbr="2 Joh" short="2. Johannes" long="Johannes’ andre brev" alt="" />
+  <book code="3JN" abbr="3 Joh" short="3. Johannes" long="Johannes’ tredje brev" alt="" />
+  <book code="JUD" abbr="Jud" short="Judas" long="Judas’ brev" alt="" />
+  <book code="REV" abbr="Åp" short="Johannes’ åpenbaring" long="Johannes’ åpenbaring" alt="" />
+</BookNames>

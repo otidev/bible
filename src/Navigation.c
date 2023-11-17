@@ -1,8 +1,6 @@
 #include "Navigation.h"
 #include "Books.h"
 
-// WARNING: This file has *DIRTY* code.
-
 void ScrollAndZoom(Book* books, BibleData* data, TTF_Font* font, cJSON* jsonBooks, ezxml_t xmlBible, Timer* text) {
 	if (globalWindow->mouseScroll.y > 0 || (globalWindow->keys[SDL_SCANCODE_UP] && !globalWindow->lastKeys[SDL_SCANCODE_UP])) {
 		if (globalWindow->keys[SDL_SCANCODE_LCTRL]) {
@@ -69,7 +67,7 @@ void ChangeChapter(Book* books, BibleData* data, TTF_Font* font, cJSON* jsonBook
 	}
 }
 
-void SearchVerse(bool* lookup, Book* books, TTF_Font* font, BibleData* data, cJSON* jsonBooks, ezxml_t xmlBible, Timer* text, int lookupTexWidth, int lookupTexHeight, SDL_Texture* lookupTex) {
+void SearchVerse(Highlight* hl, bool* lookup, Book* books, TTF_Font* font, BibleData* data, cJSON* jsonBooks, ezxml_t xmlBible, Timer* text, int lookupTexWidth, int lookupTexHeight, SDL_Texture* lookupTex) {
 	// Draw text and borders
 	char inputBook[30];
 	TTF_SetFontSize(font, 20);
@@ -127,7 +125,7 @@ void SearchVerse(bool* lookup, Book* books, TTF_Font* font, BibleData* data, cJS
 		data->chapter = atoi(token) - 1;
 
 		for (int i = 0; i < 66; i++) {
-			if (strcmp(inputBook, cJSON_GetArrayItem(jsonBooks, i)->valuestring) == 0) {
+			if (strcmp(inputBook, cJSON_GetArrayItem(cJSON_GetObjectItem(jsonBooks, data->lang), i)->valuestring) == 0) {
 				if (data->usedBook == i) {
 					break;
 				} else {
@@ -143,6 +141,7 @@ void SearchVerse(bool* lookup, Book* books, TTF_Font* font, BibleData* data, cJS
 			data->chapter = 0;
 		}
 
+		hl->chapter = atoi(token) - 1;
 		TTF_SetFontSize(font, data->origFontSize);
 
 		ezxml_t xmlBook = ezxml_idx(ezxml_child(xmlBible, "b"), data->usedBook);
@@ -164,6 +163,7 @@ void SearchVerse(bool* lookup, Book* books, TTF_Font* font, BibleData* data, cJS
 		token = strtok(NULL, " ");
 		if (atoi(token) - 1 >= numVerses) {
 			fprintf(stderr, "Error: No verse %d!", atoi(token) - 1);
+			return;
 		}
 
 		char* dText = NULL;
@@ -190,19 +190,18 @@ void SearchVerse(bool* lookup, Book* books, TTF_Font* font, BibleData* data, cJS
 		int width, chapterHeight, height;
 
 		char bookChapterName[50];
-		snprintf(bookChapterName, 50, "%s %d", cJSON_GetArrayItem(jsonBooks, data->usedBook)->valuestring, data->chapter);
-		TTF_SetFontSize(font, data->origFontSize * 2);
+		snprintf(bookChapterName, 50, "%s %d", cJSON_GetArrayItem(cJSON_GetObjectItem(jsonBooks, data->lang), data->usedBook)->valuestring, data->chapter);
+		TTF_SetFontSize(font, (int)round(data->origFontSize * data->magnifier) * 2);
 		TTF_SizeText(font, bookChapterName, NULL, &chapterHeight);
 
-		TTF_SetFontSize(font, data->origFontSize);
+		TTF_SetFontSize(font, (int)round(data->origFontSize * data->magnifier));
 		TTF_SizeText(font, dText, &width, &height);
 
 		if (!dTextSize) {
 			width = height = 0;
 		}
 
-		width /= data->wrapWidth;
-		width *= height;
+		width = (int)ceil((width / data->wrapWidth) * height);
 		width += chapterHeight;
 		text->start = data->scrollAmount;
 		if (data->scrollAmount - 200 > -books[data->usedBook].chapters[data->chapter].tex.height + globalWindow->height / 2)
@@ -210,6 +209,11 @@ void SearchVerse(bool* lookup, Book* books, TTF_Font* font, BibleData* data, cJS
 		else
 			text->end = -books[data->usedBook].chapters[data->chapter].tex.height + globalWindow->height / 2;
 		text->timePlayed = 0;
+
+		hl->width = -1;
+		hl->offset = 0;
+		hl->book = data->usedBook;
+		hl->verse = atoi(token) - 1;
 		free(dText);
 		SDL_FreeSurface(surf);
 		SDL_DestroyTexture(inputTex);
