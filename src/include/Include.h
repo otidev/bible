@@ -69,21 +69,22 @@ typedef struct Book {
 } Book;
 
 typedef struct BibleData {
+	char lang[4];
+	bool darkMode;
 	int usedBook;
 	int wrapWidth;
 	int chapter;
-	float magnifier;
 	int origFontSize;
-	bool darkMode;
+	float magnifier;
 	float scrollAmount;
 	float textOffset;
+	bool versePerLine;
 	SDL_Colour textColour;
 	SDL_Colour srcTextColour; // Used for timing
 	SDL_Colour dstTextColour; // Used for timing
 	SDL_Colour bgColour;
 	SDL_Colour srcBgColour; // Used for timing
 	SDL_Colour dstBgColour; // Used for timing
-	char lang[4];
 } BibleData;
 
 typedef struct Highlight {

@@ -131,10 +131,30 @@ void HighlightVerse(Highlight* highlighter, BibleData* data, ezxml_t xmlBible, T
 	SDL_SetRenderDrawColor(globalWindow->renderer, data->bgColour.r, data->bgColour.g, data->bgColour.b, 0xff);
 }
 
-int main() {
+int main(int argc, char** argv) {
 	Window window;
 	if (InitCores(&window, 1280, 720)) return 1;
 	last = SDL_GetTicks64();
+	char* bibleVersion = 0;
+	int bibleVersionSize = 0;
+
+	for (int i = 0; i < argc; i++) {
+		if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--version") == 0) {
+			if (i + 1 < argc) {
+				bibleVersionSize = strlen(argv[i + 1]) + strlen("../books/.xml") + 2;
+				bibleVersion = realloc(NULL, bibleVersionSize);
+				memset(bibleVersion, 0, bibleVersionSize);
+				snprintf(bibleVersion, bibleVersionSize, "../books/%s.xml", argv[i + 1]);
+			}
+		}
+	}
+
+	if (bibleVersion == 0) {
+		bibleVersionSize = strlen("../books/KJV.xml") + 1;
+		bibleVersion = realloc(NULL, bibleVersionSize);
+		memset(bibleVersion, 0, bibleVersionSize);
+		snprintf(bibleVersion, bibleVersionSize, "../books/KJV.xml");
+	}
 
 	BibleData d;
 	d.usedBook = 42;
@@ -145,6 +165,7 @@ int main() {
 	d.darkMode = false;
 	d.scrollAmount = 0;
 	d.textOffset = 0;
+	d.versePerLine = false;
 	d.textColour = (SDL_Colour){0x00, 0x00, 0x00, 0xff};
 	d.srcTextColour = (SDL_Colour){0x00, 0x00, 0x00, 0xff};
 	d.dstTextColour = (SDL_Colour){0x00, 0x00, 0x00, 0xff};
@@ -168,8 +189,9 @@ int main() {
 		return 0;
 	}
 
-	ezxml_t xmlBible = ezxml_parse_file("../books/WEB.xml");
+	ezxml_t xmlBible = ezxml_parse_file(bibleVersion);
 	snprintf(d.lang, 3, "%s", ezxml_attr(xmlBible, "lang"));
+	free(bibleVersion);
 
 	Book books[66];
 
@@ -229,6 +251,16 @@ int main() {
 				d.dstBgColour = (SDL_Colour){0xff, 0xfd, 0xd0, 0xff};
 			}
 			darkLightTransition.timePlayed = 0;
+		}
+
+		if (window.keys[SDL_SCANCODE_LCTRL] && (window.keys[SDL_SCANCODE_L] && !window.lastKeys[SDL_SCANCODE_L])) {
+			CloseBook(&books[d.usedBook]);
+			if (d.versePerLine) {
+				d.versePerLine = false;
+			} else {
+				d.versePerLine = true;
+			}
+			OpenBook(&books[d.usedBook], font, &d, jsonBooks, xmlBible);
 		}
 
 		if (window.keys[SDL_SCANCODE_F11] && !window.lastKeys[SDL_SCANCODE_F11]) {

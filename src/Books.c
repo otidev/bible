@@ -110,15 +110,27 @@ SDL_Texture* RenderChapter(TTF_Font* font, BibleData* data, cJSON* books, ezxml_
 		char digits[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
 		Superscript(verseNumber, digits);
 
-		text = (char*)realloc(text, sizeof(char) * (strlen(xmlVerse->txt) + textSize + strlen(digits) + 6));
-		textSize += (strlen(xmlVerse->txt) + strlen(digits) + 6);
-		if (i == 0) memset(text, 0, textSize);
-		if (!text) {
-			fprintf(stderr, "Error: allocating Bible text failed");
-			break;
-		}
+		if (data->versePerLine) {
+			text = (char*)realloc(text, sizeof(char) * (strlen(xmlVerse->txt) + textSize + strlen(digits) + strlen(" ") + 5));
+			textSize += (strlen(xmlVerse->txt) + strlen(digits) + strlen(" ") + 5);
+			if (i == 0) memset(text, 0, textSize);
+			if (!text) {
+				fprintf(stderr, "Error: allocating Bible text failed");
+				break;
+			}
 
-		snprintf(text, textSize, "%s%s %s ", text, digits, xmlVerse->txt);
+			snprintf(text, textSize, "%s%s %s\n\n", text, digits, xmlVerse->txt);
+		} else {
+			text = (char*)realloc(text, sizeof(char) * (strlen(xmlVerse->txt) + textSize + strlen(digits) + strlen(" ") + 4));
+			textSize += (strlen(xmlVerse->txt) + strlen(digits) + strlen(" ") + 4);
+			if (i == 0) memset(text, 0, textSize);
+			if (!text) {
+				fprintf(stderr, "Error: allocating Bible text failed");
+				break;
+			}
+
+			snprintf(text, textSize, "%s%s %s ", text, digits, xmlVerse->txt);
+		}
 	}
 
 	TTF_SetFontSize(font, fontSize);
