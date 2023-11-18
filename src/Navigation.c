@@ -70,7 +70,7 @@ void ChangeChapter(Book* books, BibleData* data, TTF_Font* font, cJSON* jsonBook
 void SearchVerse(Highlight* hl, bool* lookup, Book* books, TTF_Font* font, BibleData* data, cJSON* jsonBooks, ezxml_t xmlBible, Timer* text, int lookupTexWidth, int lookupTexHeight, SDL_Texture* lookupTex) {
 	// Draw text and borders
 	char inputBook[30];
-	TTF_SetFontSize(font, 20);
+	TTF_SetFontSize(font, data->origFontSize + 5);
 	TTF_SetFontStyle(font, TTF_STYLE_ITALIC);
 	SDL_Surface* surf = TTF_RenderUTF8_Blended_Wrapped(font, globalWindow->textInput, (SDL_Colour){255, 255, 255, 255}, globalWindow->width);
 	SDL_Texture* inputTex = SDL_CreateTextureFromSurface(globalWindow->renderer, surf);
@@ -80,16 +80,16 @@ void SearchVerse(Highlight* hl, bool* lookup, Book* books, TTF_Font* font, Bible
 
 	SDL_SetRenderDrawBlendMode(globalWindow->renderer, SDL_BLENDMODE_BLEND);
 	SDL_SetRenderDrawColor(globalWindow->renderer, data->bgColour.r, data->bgColour.g, data->bgColour.b, 0xbf);
-	SDL_RenderFillRect(globalWindow->renderer, &(SDL_Rect){0, 0, globalWindow->width, 40});
+	SDL_RenderFillRect(globalWindow->renderer, &(SDL_Rect){0, 0, globalWindow->width, (data->origFontSize + 5) * 2});
 	SDL_SetRenderDrawColor(globalWindow->renderer, 0, 0, 0, 0xbf);
-	SDL_RenderDrawLine(globalWindow->renderer, 0, 40, globalWindow->width, 40);
+	SDL_RenderDrawLine(globalWindow->renderer, 0, (data->origFontSize + 5) * 2, globalWindow->width, (data->origFontSize + 5) * 2);
 	SDL_SetRenderDrawBlendMode(globalWindow->renderer, SDL_BLENDMODE_NONE);
 
 	SDL_SetTextureColorMod(lookupTex, data->textColour.r, data->textColour.g, data->textColour.b);
 	SDL_SetTextureColorMod(inputTex, data->textColour.r, data->textColour.g, data->textColour.b);
 
-	SDL_RenderCopyF(globalWindow->renderer, lookupTex, NULL, &(SDL_FRect){5, 40 / 2 - lookupTexHeight / 2, lookupTexWidth, lookupTexHeight});
-	SDL_RenderCopyF(globalWindow->renderer, inputTex, NULL, &(SDL_FRect){lookupTexWidth, 40 / 2 - inputTexHeight / 2, inputTexWidth, inputTexHeight});
+	SDL_RenderCopyF(globalWindow->renderer, lookupTex, NULL, &(SDL_FRect){5, (data->origFontSize + 5) * 2 / 2 - lookupTexHeight / 2, lookupTexWidth, lookupTexHeight});
+	SDL_RenderCopyF(globalWindow->renderer, inputTex, NULL, &(SDL_FRect){lookupTexWidth, (data->origFontSize + 5) * 2 / 2 - inputTexHeight / 2, inputTexWidth, inputTexHeight});
 	if (globalWindow->keys[SDL_SCANCODE_BACKSPACE]) {
 		for (int i = 0; i < 200; i++) {
 			if (globalWindow->textInput[i] != 0 && globalWindow->textInput[i + 1] == 0) {

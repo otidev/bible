@@ -168,7 +168,7 @@ int main() {
 		return 0;
 	}
 
-	ezxml_t xmlBible = ezxml_parse_file("../books/KJV.xml");
+	ezxml_t xmlBible = ezxml_parse_file("../books/WEB.xml");
 	snprintf(d.lang, 3, "%s", ezxml_attr(xmlBible, "lang"));
 
 	Book books[66];
@@ -181,7 +181,7 @@ int main() {
 	highlighter.colour = (SDL_Colour){0x00, 0x00, 0x00, 0x3f};
 
 	OpenBook(&books[d.usedBook], font, &d, jsonBooks, xmlBible);
-	TTF_SetFontSize(font, 20);
+	TTF_SetFontSize(font, d.origFontSize + 5);
 	SDL_Surface* surf = TTF_RenderUTF8_Blended_Wrapped(font, "Enter Bible verse (format: book chapter verse):  ", (SDL_Colour){255, 255, 255, 255}, window.width);
 	TTF_SetFontSize(font, d.origFontSize);
 	SDL_Texture* lookupTex = SDL_CreateTextureFromSurface(globalWindow->renderer, surf);
@@ -198,7 +198,8 @@ int main() {
 	int lastWindowWidth = window.width;
 	int lastWindowHeight = window.height;
 	bool lookup = false;
-	bool highlightVerse = true;
+	bool highlightVerse = false;
+	bool fullscreen = true;
 
 	while (WindowIsOpen()) {
 		now = SDL_GetTicks64();
@@ -228,6 +229,16 @@ int main() {
 				d.dstBgColour = (SDL_Colour){0xff, 0xfd, 0xd0, 0xff};
 			}
 			darkLightTransition.timePlayed = 0;
+		}
+
+		if (window.keys[SDL_SCANCODE_F11] && !window.lastKeys[SDL_SCANCODE_F11]) {
+			if (!fullscreen) {
+				fullscreen = true;
+				SDL_SetWindowFullscreen(window.window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+			} else {
+				fullscreen = false;
+				SDL_SetWindowFullscreen(window.window, 0);
+			}
 		}
 
 
@@ -300,7 +311,6 @@ int main() {
 		SDL_RenderCopyF(window.renderer, books[d.usedBook].chapters[d.chapter].tex.data, NULL, &(SDL_FRect){window.width / 2 - (books[d.usedBook].chapters[d.chapter].tex.width) / 2 - (d.textOffset), d.scrollAmount, books[d.usedBook].chapters[d.chapter].tex.width, books[d.usedBook].chapters[d.chapter].tex.height});
 
 		if (lookup) {
-			highlightVerse = true;
 			SearchVerse(&highlighter, &lookup, books, font, &d, jsonBooks, xmlBible, &text, lookupTexWidth, lookupTexHeight, lookupTex);
 		}
 
