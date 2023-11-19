@@ -12,7 +12,7 @@ obj/%.o: src/%.c
 	gcc $^ -c -I src/include -I lib/include -Wall --std=c99 -o $@
 
 compile: $(OBJS)
-	gcc $^ -I src/include -I lib/include -Wall -L lib -lSDL2main -lSDL2_image -lSDL2 -lSDL2_mixer.dll -lSDL2_ttf.dll $(WINDOWS) -lrr --std=c99 -o bin/bible.exe
+	gcc $^ -I src/include -I lib/include -Wall -L lib -lSDL2_ttf -lSDL2main -lSDL2_image -lSDL2 -lSDL2_mixer.dll $(WINDOWS) -lrr --std=c99 -o bin/bible.exe
 
 run: bin/bible.exe
 	cd bin/; ./bible.exe

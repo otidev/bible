@@ -176,15 +176,29 @@ void SearchVerse(Highlight* hl, bool* lookup, Book* books, TTF_Font* font, Bible
 			char digits[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
 			Superscript(verseNumber, digits);
 
-			dText = (char*)realloc(dText, sizeof(char) * (strlen(xmlVerse->txt) + dTextSize + strlen(digits) + 2));
-			dTextSize += (strlen(xmlVerse->txt) + strlen(digits) + 2);
-			if (i == 0) memset(dText, 0, dTextSize);
-			if (!dText) {
-				fprintf(stderr, "Error: allocating Bible text failed");
-				break;
-			}
+			if (data->versePerLine) {
+				dText = (char*)realloc(dText, sizeof(char) * (strlen(xmlVerse->txt) + dTextSize + strlen(digits) + strlen(" ") + 6));
+				dTextSize += (strlen(xmlVerse->txt) + strlen(digits) + strlen(" ") + 6);
+				if (i == 0) memset(dText, 0, dTextSize);
+				if (!dText) {
+					fprintf(stderr, "Error: allocating Bible text failed");
+					break;
+				}
 
-			snprintf(dText, dTextSize, "%s%s%s ", dText, digits, xmlVerse->txt);
+				snprintf(dText, dTextSize, "%s%s %s", dText, digits, xmlVerse->txt);
+			} else {
+				printf("i");
+				dText = (char*)realloc(dText, sizeof(char) * (strlen(xmlVerse->txt) + dTextSize + strlen(digits) + strlen(" ") + 4));
+				dTextSize += (strlen(xmlVerse->txt) + strlen(digits) + strlen(" ") + 4);
+				if (i == 0) memset(dText, 0, dTextSize);
+				if (!dText) {
+					fprintf(stderr, "Error: allocating Bible text failed");
+					break;
+				}
+
+
+				snprintf(dText, dTextSize, "%s%s %s ", dText, digits, xmlVerse->txt);
+			}
 		}
 
 		int width, chapterHeight, height;
@@ -201,8 +215,16 @@ void SearchVerse(Highlight* hl, bool* lookup, Book* books, TTF_Font* font, Bible
 			width = height = 0;
 		}
 
+		// Get newline height (because SDL_TTF doesnt support it)
+		int newlineHeight = 0;
+		if (data->versePerLine) {
+			TTF_SizeText(font, "", NULL, &newlineHeight);
+			newlineHeight *= (atoi(token) - 1) * 2;
+		}
+
+
 		width = (int)ceil((width / data->wrapWidth) * height);
-		width += chapterHeight;
+		width += chapterHeight + newlineHeight;
 		text->start = data->scrollAmount;
 		if (data->scrollAmount - 200 > -books[data->usedBook].chapters[data->chapter].tex.height + globalWindow->height / 2)
 			text->end = -width;
