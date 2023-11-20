@@ -168,7 +168,7 @@ void SearchVerse(Highlight* hl, bool* lookup, Book* books, TTF_Font* font, Bible
 
 		char* dText = NULL;
 		int dTextSize = 0;
-
+		int extra = 0;
 
 		for (int i = 0; i < atoi(token) - 1; i++) {
 			ezxml_t xmlVerse = ezxml_idx(ezxml_child(xmlChapter, "v"), i);
@@ -177,17 +177,25 @@ void SearchVerse(Highlight* hl, bool* lookup, Book* books, TTF_Font* font, Bible
 			Superscript(verseNumber, digits);
 
 			if (data->versePerLine) {
-				dText = (char*)realloc(dText, sizeof(char) * (strlen(xmlVerse->txt) + dTextSize + strlen(digits) + strlen(" ") + 6));
-				dTextSize += (strlen(xmlVerse->txt) + strlen(digits) + strlen(" ") + 6);
-				if (i == 0) memset(dText, 0, dTextSize);
+				dText = malloc(sizeof(char) * (strlen(xmlVerse->txt) + dTextSize + strlen(digits) + strlen(" ") + 4));
+				dTextSize += (strlen(xmlVerse->txt) + strlen(digits) + strlen(" ") + 4);
+				memset(dText, 0, dTextSize);
 				if (!dText) {
 					fprintf(stderr, "Error: allocating Bible text failed");
 					break;
 				}
 
-				snprintf(dText, dTextSize, "%s%s %s", dText, digits, xmlVerse->txt);
+				int width;
+
+				// For each line:
+				// Check if the size of the line excedes wrap width
+				// If so, add by how many lines to a counter.
+
+				snprintf(dText, dTextSize, "%s%s %s\n", dText, digits, xmlVerse->txt);
+				TTF_SetFontSize(font, (int)round(data->origFontSize * data->magnifier));
+				TTF_SizeText(font, dText, &width, NULL);
+				extra += (int)floor((float)width / data->wrapWidth);
 			} else {
-				printf("i");
 				dText = (char*)realloc(dText, sizeof(char) * (strlen(xmlVerse->txt) + dTextSize + strlen(digits) + strlen(" ") + 4));
 				dTextSize += (strlen(xmlVerse->txt) + strlen(digits) + strlen(" ") + 4);
 				if (i == 0) memset(dText, 0, dTextSize);
@@ -200,6 +208,7 @@ void SearchVerse(Highlight* hl, bool* lookup, Book* books, TTF_Font* font, Bible
 				snprintf(dText, dTextSize, "%s%s %s ", dText, digits, xmlVerse->txt);
 			}
 		}
+		printf("%d\n", extra);
 
 		int width, chapterHeight, height;
 
@@ -215,15 +224,17 @@ void SearchVerse(Highlight* hl, bool* lookup, Book* books, TTF_Font* font, Bible
 			width = height = 0;
 		}
 
-		// Get newline height (because SDL_TTF doesnt support it)
 		int newlineHeight = 0;
 		if (data->versePerLine) {
+			width = 0;
 			TTF_SizeText(font, "", NULL, &newlineHeight);
-			newlineHeight *= (atoi(token) - 1) * 2;
+			newlineHeight *= (atoi(token) - 1) * 2 + extra;
+			printf("%d", (atoi(token) - 1) * 2 + extra);
+		} else {
+			width = (int)floor((width / data->wrapWidth) * height);
 		}
 
 
-		width = (int)ceil((width / data->wrapWidth) * height);
 		width += chapterHeight + newlineHeight;
 		text->start = data->scrollAmount;
 		if (data->scrollAmount - 200 > -books[data->usedBook].chapters[data->chapter].tex.height + globalWindow->height / 2)
