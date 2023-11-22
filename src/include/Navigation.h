@@ -3,6 +3,8 @@
 
 #include "Include.h"
 
+void LoadBibleIcon(BibleData* data, cJSON* jsonBooks);
+
 void ScrollAndZoom(Book* books, BibleData* data, TTF_Font* font, cJSON* jsonBooks, ezxml_t xmlBible, Timer* text);
 
 void ChangeChapter(Book* books, BibleData* data, TTF_Font* font, cJSON* jsonBooks, ezxml_t xmlBible, Timer* text, Timer* textTransition);

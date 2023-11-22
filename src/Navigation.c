@@ -1,6 +1,20 @@
 #include "Navigation.h"
 #include "Books.h"
 
+void LoadBibleIcon(BibleData* data, cJSON* jsonBooks) {
+	SDL_DestroyTexture(data->bgImg.data); // This'll fail on the first usage but we don't really care
+	char bookName[50];
+	strcpy(bookName, cJSON_GetArrayItem(cJSON_GetObjectItem(jsonBooks, data->lang), data->usedBook)->valuestring);
+	for (int i = 0; i < 50; i++) bookName[i] = tolower(bookName[i]);
+
+	char iconLocation[60];
+	snprintf(iconLocation, 50, "../icons/books/%s.png", bookName);
+	SDL_Surface* surf = IMG_Load(iconLocation);
+	data->bgImg.data = SDL_CreateTextureFromSurface(globalWindow->renderer, surf);
+	SDL_FreeSurface(surf);
+	SDL_QueryTexture(data->bgImg.data, NULL, NULL, &data->bgImg.width, &data->bgImg.height);
+}
+
 void ScrollAndZoom(Book* books, BibleData* data, TTF_Font* font, cJSON* jsonBooks, ezxml_t xmlBible, Timer* text) {
 	if (globalWindow->mouseScroll.y > 0 || (globalWindow->keys[SDL_SCANCODE_UP] && !globalWindow->lastKeys[SDL_SCANCODE_UP])) {
 		if (globalWindow->keys[SDL_SCANCODE_LCTRL]) {
@@ -43,6 +57,7 @@ void ChangeChapter(Book* books, BibleData* data, TTF_Font* font, cJSON* jsonBook
 				if (data->usedBook != 65) OpenBook(&books[data->usedBook], font, data, jsonBooks, xmlBible);
 				data->chapter = 0;
 				textTransition->duration = 1.2;
+				LoadBibleIcon(data, jsonBooks);
 			} else {
 				data->chapter++;
 				textTransition->duration = 0.7;
@@ -59,6 +74,7 @@ void ChangeChapter(Book* books, BibleData* data, TTF_Font* font, cJSON* jsonBook
 				if (data->usedBook != 0) OpenBook(&books[data->usedBook], font, data, jsonBooks, xmlBible);
 				data->chapter = books[data->usedBook].numChapters - 1;
 				textTransition->duration = 1.2;
+				LoadBibleIcon(data, jsonBooks);
 			} else {
 				data->chapter--;
 				textTransition->duration = 0.7;
@@ -132,6 +148,7 @@ void SearchVerse(Highlight* hl, bool* lookup, Book* books, TTF_Font* font, Bible
 					CloseBook(&books[data->usedBook]);
 					data->usedBook = i;
 					OpenBook(&books[data->usedBook], font, data, jsonBooks, xmlBible);
+					LoadBibleIcon(data, jsonBooks);
 				}
 				break;
 			}
@@ -177,8 +194,8 @@ void SearchVerse(Highlight* hl, bool* lookup, Book* books, TTF_Font* font, Bible
 			Superscript(verseNumber, digits);
 
 			if (data->versePerLine) {
-				dText = malloc(sizeof(char) * (strlen(xmlVerse->txt) + dTextSize + strlen(digits) + strlen(" ") + 4));
-				dTextSize += (strlen(xmlVerse->txt) + strlen(digits) + strlen(" ") + 4);
+				dText = malloc(sizeof(char) * (strlen(xmlVerse->txt) + dTextSize + strlen(digits) + strlen(" ") + 3));
+				dTextSize += (strlen(xmlVerse->txt) + strlen(digits) + strlen(" ") + 3);
 				memset(dText, 0, dTextSize);
 				if (!dText) {
 					fprintf(stderr, "Error: allocating Bible text failed");
@@ -191,7 +208,7 @@ void SearchVerse(Highlight* hl, bool* lookup, Book* books, TTF_Font* font, Bible
 				// Check if the size of the line excedes wrap width
 				// If so, add by how many lines to a counter.
 
-				snprintf(dText, dTextSize, "%s%s %s\n", dText, digits, xmlVerse->txt);
+				snprintf(dText, dTextSize, "%s%s %s", dText, digits, xmlVerse->txt);
 				TTF_SetFontSize(font, (int)round(data->origFontSize * data->magnifier));
 				TTF_SizeText(font, dText, &width, NULL);
 				extra += (int)floor((float)width / data->wrapWidth);
@@ -229,7 +246,6 @@ void SearchVerse(Highlight* hl, bool* lookup, Book* books, TTF_Font* font, Bible
 			width = 0;
 			TTF_SizeText(font, "", NULL, &newlineHeight);
 			newlineHeight *= (atoi(token) - 1) * 2 + extra;
-			printf("%d", (atoi(token) - 1) * 2 + extra);
 		} else {
 			width = (int)floor((width / data->wrapWidth) * height);
 		}

@@ -172,6 +172,13 @@ int main(int argc, char** argv) {
 	d.bgColour = (SDL_Colour){0xff, 0xfd, 0xd0, 0xff};
 	d.srcBgColour = (SDL_Colour){0x00, 0x00, 0x00, 0xff};
 	d.dstBgColour = (SDL_Colour){0xff, 0xfd, 0xd0, 0xff};
+	d.bgImgColour = (SDL_Colour){0xf6, 0xea, 0xe2, 0x1f};
+	d.bgImgSrcColour = (SDL_Colour){0x00, 0x00, 0x00, 0xff};
+	d.bgImgDstColour = (SDL_Colour){0x00, 0x00, 0x00, 0xff};
+
+	ezxml_t xmlBible = ezxml_parse_file(bibleVersion);
+	snprintf(d.lang, 3, "%s", ezxml_attr(xmlBible, "lang"));
+	free(bibleVersion);
 
 	TTF_Font* font = TTF_OpenFont("../fonts/Cardo-Regular.ttf", d.origFontSize);
 	if (!font) {
@@ -179,9 +186,10 @@ int main(int argc, char** argv) {
 		return 0;
 	}
 
-	SDL_Surface* icon = IMG_Load("../icons/biblelogo.ico");
-	SDL_SetWindowIcon(window.window, icon);
-	SDL_FreeSurface(icon);
+	SDL_Surface* surfPtr = IMG_Load("../icons/biblelogo.ico");
+	SDL_SetWindowIcon(window.window, surfPtr);
+	SDL_FreeSurface(surfPtr);
+
 
 	cJSON* jsonBooks = GetRoot("../books/Books.json");
 	if (!jsonBooks) {
@@ -189,9 +197,7 @@ int main(int argc, char** argv) {
 		return 0;
 	}
 
-	ezxml_t xmlBible = ezxml_parse_file(bibleVersion);
-	snprintf(d.lang, 3, "%s", ezxml_attr(xmlBible, "lang"));
-	free(bibleVersion);
+	LoadBibleIcon(&d, jsonBooks);
 
 	Book books[66];
 
@@ -244,11 +250,15 @@ int main(int argc, char** argv) {
 				d.dstTextColour = (SDL_Colour){0xff, 0xff, 0xff, 0xff};
 				d.srcBgColour = d.bgColour;
 				d.dstBgColour = (SDL_Colour){0x20, 0x20, 0x20, 0xff};
+				d.bgImgSrcColour = d.bgImgColour;
+				d.bgImgDstColour = (SDL_Colour){0xff, 0xff, 0xff, 0x1f};
 			} else {
 				d.srcTextColour = d.textColour;
 				d.dstTextColour = (SDL_Colour){0x00, 0x00, 0x00, 0xff};
 				d.srcBgColour = d.bgColour;
 				d.dstBgColour = (SDL_Colour){0xff, 0xfd, 0xd0, 0xff};
+				d.bgImgSrcColour = d.bgImgColour;
+				d.bgImgDstColour = (SDL_Colour){0xf6, 0xea, 0xe2, 0x1f};
 			}
 			darkLightTransition.timePlayed = 0;
 		}
@@ -298,11 +308,16 @@ int main(int argc, char** argv) {
 			d.bgColour.r = Lerp(d.srcBgColour.r, d.dstBgColour.r, 1 - pow(1 - (darkLightTransition.timePlayed / darkLightTransition.duration), 2));
 			d.bgColour.g = Lerp(d.srcBgColour.g, d.dstBgColour.g, 1 - pow(1 - (darkLightTransition.timePlayed / darkLightTransition.duration), 2));
 			d.bgColour.b = Lerp(d.srcBgColour.b, d.dstBgColour.b, 1 - pow(1 - (darkLightTransition.timePlayed / darkLightTransition.duration), 2));
+			d.bgImgColour.r = Lerp(d.bgImgSrcColour.r, d.bgImgDstColour.r, 1 - pow(1 - (darkLightTransition.timePlayed / darkLightTransition.duration), 2));
+			d.bgImgColour.g = Lerp(d.bgImgSrcColour.g, d.bgImgDstColour.g, 1 - pow(1 - (darkLightTransition.timePlayed / darkLightTransition.duration), 2));
+			d.bgImgColour.b = Lerp(d.bgImgSrcColour.b, d.bgImgDstColour.b, 1 - pow(1 - (darkLightTransition.timePlayed / darkLightTransition.duration), 2));
 			darkLightTransition.timePlayed += window.deltaTime;
 		} if (darkLightTransition.timePlayed >= darkLightTransition.duration) {
 			darkLightTransition.timePlayed = 0;
 			d.textColour.r = d.dstTextColour.r; d.textColour.g = d.dstTextColour.g; d.textColour.b = d.dstTextColour.b;
 			d.bgColour.r = d.dstBgColour.r; d.bgColour.g = d.dstBgColour.g; d.bgColour.b = d.dstBgColour.b;
+			d.bgImgColour.r = d.bgImgDstColour.r; d.bgImgColour.g = d.bgImgDstColour.g; d.bgImgColour.b = d.bgImgDstColour.b;
+
 		}
 
 		if (d.scrollAmount > window.height / 2) {
@@ -338,6 +353,17 @@ int main(int argc, char** argv) {
 
 		SDL_SetRenderDrawColor(window.renderer, d.bgColour.r, d.bgColour.g, d.bgColour.b, 0xff);
 		SDL_RenderClear(window.renderer);
+
+		float moveDistance = (float)(window.width - d.bgImg.width * d.magnifier) / (books[d.usedBook].numChapters > 1 ? (books[d.usedBook].numChapters - 1) : 1);
+
+		SDL_SetTextureColorMod(d.bgImg.data, d.bgImgColour.r, d.bgImgColour.g, d.bgImgColour.b);
+		SDL_SetTextureAlphaMod(d.bgImg.data, d.bgImgColour.a);
+		SDL_RenderCopyF(window.renderer, d.bgImg.data, NULL, &(SDL_FRect){
+			(moveDistance * d.chapter) + (float)(moveDistance * (d.textOffset / globalWindow->width)),
+			window.height / 2 - (d.bgImg.height * d.magnifier) / 2 + (d.scrollAmount * 0.1),
+			d.bgImg.width * d.magnifier,
+			d.bgImg.height * d.magnifier
+		});
 
 		SDL_SetTextureColorMod(books[d.usedBook].chapters[d.chapter].tex.data, d.textColour.r, d.textColour.g, d.textColour.b);
 		SDL_RenderCopyF(window.renderer, books[d.usedBook].chapters[d.chapter].tex.data, NULL, &(SDL_FRect){window.width / 2 - (books[d.usedBook].chapters[d.chapter].tex.width) / 2 - (d.textOffset), d.scrollAmount, books[d.usedBook].chapters[d.chapter].tex.width, books[d.usedBook].chapters[d.chapter].tex.height});

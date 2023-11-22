@@ -10,6 +10,7 @@
 #include <SDL_ttf.h>
 #include <SDL_image.h>
 #include <wchar.h>
+#include <ctype.h>
 #include "WavLoader.h"
 #include "cJSON.h"
 #include "ezxml.h"
@@ -79,12 +80,16 @@ typedef struct BibleData {
 	float scrollAmount;
 	float textOffset;
 	bool versePerLine;
+	Texture bgImg;
 	SDL_Colour textColour;
 	SDL_Colour srcTextColour; // Used for timing
 	SDL_Colour dstTextColour; // Used for timing
 	SDL_Colour bgColour;
 	SDL_Colour srcBgColour; // Used for timing
 	SDL_Colour dstBgColour; // Used for timing
+	SDL_Colour bgImgColour;
+	SDL_Colour bgImgSrcColour; // Used for timing
+	SDL_Colour bgImgDstColour; // Used for timing
 } BibleData;
 
 typedef struct Highlight {
