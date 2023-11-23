@@ -29,7 +29,7 @@ In the future, any file with the format:
 <bible lang="<language in Books.json>">
     <b> <!-- book -->
         <c> <!-- chapter -->
-            <v> <!-- verse -->
+            <v n="<verseNumber>"> <!-- verse -->
             </v>
         </c>
     </b>
