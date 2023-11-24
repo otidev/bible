@@ -13,6 +13,8 @@ A (kinda) fast Bible that anyone can use.
 
 ``Ctrl + D`` - Toggle dark mode
 
+``=/-`` - Increase/Decrease wrap width
+
 To change Bible versions, type `./bible -v <version>`.
 
 Currently, you can select from these versions:

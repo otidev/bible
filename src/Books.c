@@ -88,7 +88,7 @@ SDL_Texture* RenderChapter(TTF_Font* font, BibleData* data, cJSON* books, ezxml_
 
 	float fontSize = (int)round(data->origFontSize * data->magnifier);
 	TTF_SetFontSize(font, fontSize * 2);
-	SDL_Surface* surf = TTF_RenderUTF8_Blended_Wrapped(font, bookChapterName, (SDL_Colour){0xff, 0xff, 0xff, 0xff}, data->wrapWidth);
+	SDL_Surface* surf = TTF_RenderUTF8_Blended_Wrapped(font, bookChapterName, (SDL_Colour){0xff, 0xff, 0xff, 0xff}, (int)round(data->wrapWidth * data->wrapWidthMult));
 	SDL_Texture* header = SDL_CreateTextureFromSurface(globalWindow->renderer, surf);
 	SDL_FreeSurface(surf);
 
@@ -134,7 +134,7 @@ SDL_Texture* RenderChapter(TTF_Font* font, BibleData* data, cJSON* books, ezxml_
 	}
 
 	TTF_SetFontSize(font, fontSize);
-	surf = TTF_RenderUTF8_Blended_Wrapped(font, text, (SDL_Colour){0xff, 0xff, 0xff, 0xff}, data->wrapWidth);
+	surf = TTF_RenderUTF8_Blended_Wrapped(font, text, (SDL_Colour){0xff, 0xff, 0xff, 0xff}, (int)round(data->wrapWidth * data->wrapWidthMult));
 	SDL_Texture* mainTextTex = SDL_CreateTextureFromSurface(globalWindow->renderer, surf);
 	SDL_FreeSurface(surf);
 
@@ -143,14 +143,14 @@ SDL_Texture* RenderChapter(TTF_Font* font, BibleData* data, cJSON* books, ezxml_
 
 	int mainTextTexWidth, mainTextTexHeight;
 	SDL_QueryTexture(mainTextTex, NULL, NULL, &mainTextTexWidth, &mainTextTexHeight);
-	SDL_Texture* dstTex = SDL_CreateTexture(globalWindow->renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, data->wrapWidth, mainTextTexHeight + headerHeight);
+	SDL_Texture* dstTex = SDL_CreateTexture(globalWindow->renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, (int)round(data->wrapWidth * data->wrapWidthMult), mainTextTexHeight + headerHeight);
 
 	SDL_SetRenderTarget(globalWindow->renderer, dstTex);
 	SDL_SetRenderDrawColor(globalWindow->renderer, 0xff, 0xff, 0xff, 0x00);
 	SDL_SetTextureBlendMode(dstTex, SDL_BLENDMODE_BLEND);
 	SDL_RenderClear(globalWindow->renderer);
 
-	SDL_RenderCopy(globalWindow->renderer, header, NULL, &(SDL_Rect){data->wrapWidth / 2 - headerWidth / 2, 0, headerWidth, headerHeight});
+	SDL_RenderCopy(globalWindow->renderer, header, NULL, &(SDL_Rect){(int)round(data->wrapWidth * data->wrapWidthMult) / 2 - headerWidth / 2, 0, headerWidth, headerHeight});
 	SDL_RenderCopy(globalWindow->renderer, mainTextTex, NULL, &(SDL_Rect){0, headerHeight, mainTextTexWidth, mainTextTexHeight});
 
 	SDL_DestroyTexture(header);

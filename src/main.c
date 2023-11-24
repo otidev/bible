@@ -158,9 +158,10 @@ int main(int argc, char** argv) {
 
 	BibleData d;
 	d.usedBook = 42;
-	d.wrapWidth = 900;
-	d.chapter = 0;
 	d.magnifier = 1;
+	d.wrapWidth = 900;
+	d.wrapWidthMult = 1;
+	d.chapter = 0;
 	d.origFontSize = 25;
 	d.darkMode = false;
 	d.scrollAmount = 0;
@@ -172,6 +173,7 @@ int main(int argc, char** argv) {
 	d.bgColour = (SDL_Colour){0xff, 0xfd, 0xd0, 0xff};
 	d.srcBgColour = (SDL_Colour){0x00, 0x00, 0x00, 0xff};
 	d.dstBgColour = (SDL_Colour){0xff, 0xfd, 0xd0, 0xff};
+	d.bgImg.data = NULL;
 	d.bgImgColour = (SDL_Colour){0xf6, 0xea, 0xe2, 0x1f};
 	d.bgImgSrcColour = (SDL_Colour){0x00, 0x00, 0x00, 0xff};
 	d.bgImgDstColour = (SDL_Colour){0x00, 0x00, 0x00, 0xff};
@@ -236,6 +238,20 @@ int main(int argc, char** argv) {
 
 		ScrollAndZoom(books, &d, font, jsonBooks, xmlBible, &text);
 		ChangeChapter(books, &d, font, jsonBooks, xmlBible, &text, &textTransition);
+
+		if (window.keys[SDL_SCANCODE_EQUALS] && !window.lastKeys[SDL_SCANCODE_EQUALS]) {
+			CloseBook(&books[d.usedBook]);
+			if ((int)round(d.wrapWidth * d.wrapWidthMult) < window.width - 60)
+				d.wrapWidthMult += 0.1;
+			OpenBook(&books[d.usedBook], font, &d, jsonBooks, xmlBible);
+		}
+
+		if (window.keys[SDL_SCANCODE_MINUS] && !window.lastKeys[SDL_SCANCODE_MINUS]) {
+			CloseBook(&books[d.usedBook]);
+			if ((int)round(d.wrapWidth * d.wrapWidthMult) > 200)
+				d.wrapWidthMult -= 0.1;
+			OpenBook(&books[d.usedBook], font, &d, jsonBooks, xmlBible);
+		}
 
 		if (window.keys[SDL_SCANCODE_LCTRL] && (window.keys[SDL_SCANCODE_F] && !window.lastKeys[SDL_SCANCODE_F])) {
 			for (int i = 0; i < 500; i++)
@@ -329,9 +345,10 @@ int main(int argc, char** argv) {
 
 		if ((lastWindowWidth != window.width) || (lastWindowHeight != window.height)) {
 			CloseBook(&books[d.usedBook]);
-			if (900 >= window.width)
+			if ((int)round(d.wrapWidth * d.wrapWidthMult) >= window.width) {
 				d.wrapWidth = window.width - 60;
-			else
+				d.wrapWidthMult = 1;
+			} else
 				d.wrapWidth = 900;
 			OpenBook(&books[d.usedBook], font, &d, jsonBooks, xmlBible);
 			if (lastWindowWidth != window.width) {

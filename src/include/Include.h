@@ -77,6 +77,7 @@ typedef struct BibleData {
 	int chapter;
 	int origFontSize;
 	float magnifier;
+	float wrapWidthMult;
 	float scrollAmount;
 	float textOffset;
 	bool versePerLine;

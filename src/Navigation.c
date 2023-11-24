@@ -2,7 +2,7 @@
 #include "Books.h"
 
 void LoadBibleIcon(BibleData* data, cJSON* jsonBooks) {
-	SDL_DestroyTexture(data->bgImg.data); // This'll fail on the first usage but we don't really care
+	if (data->bgImg.data) SDL_DestroyTexture(data->bgImg.data);
 	char bookName[50];
 	strcpy(bookName, cJSON_GetArrayItem(cJSON_GetObjectItem(jsonBooks, data->lang), data->usedBook)->valuestring);
 	for (int i = 0; i < 50; i++) bookName[i] = tolower(bookName[i]);
@@ -52,9 +52,9 @@ void ChangeChapter(Book* books, BibleData* data, TTF_Font* font, cJSON* jsonBook
 			textTransition->start = data->textOffset = -globalWindow->width;
 			textTransition->end = 0;
 			textTransition->timePlayed = 0;
-			if (data->chapter + 1 == books[data->usedBook].numChapters) {
+			if (data->chapter + 1 == books[data->usedBook].numChapters && data->usedBook != 65) {
 				data->usedBook++;
-				if (data->usedBook != 65) OpenBook(&books[data->usedBook], font, data, jsonBooks, xmlBible);
+				OpenBook(&books[data->usedBook], font, data, jsonBooks, xmlBible);
 				data->chapter = 0;
 				textTransition->duration = 1.2;
 				LoadBibleIcon(data, jsonBooks);
@@ -69,9 +69,9 @@ void ChangeChapter(Book* books, BibleData* data, TTF_Font* font, cJSON* jsonBook
 			textTransition->start = data->textOffset = globalWindow->width;
 			textTransition->end = 0;
 			textTransition->timePlayed = 0;
-			if (data->chapter == 0) {
+			if (data->chapter == 0 && data->usedBook != 0) {
 				data->usedBook--;
-				if (data->usedBook != 0) OpenBook(&books[data->usedBook], font, data, jsonBooks, xmlBible);
+				OpenBook(&books[data->usedBook], font, data, jsonBooks, xmlBible);
 				data->chapter = books[data->usedBook].numChapters - 1;
 				textTransition->duration = 1.2;
 				LoadBibleIcon(data, jsonBooks);
@@ -211,7 +211,7 @@ void SearchVerse(Highlight* hl, bool* lookup, Book* books, TTF_Font* font, Bible
 				snprintf(dText, dTextSize, "%s%s %s", dText, digits, xmlVerse->txt);
 				TTF_SetFontSize(font, (int)round(data->origFontSize * data->magnifier));
 				TTF_SizeText(font, dText, &width, NULL);
-				extra += (int)floor((float)width / data->wrapWidth);
+				extra += (int)floor((float)width / (int)round(data->wrapWidth * data->wrapWidthMult));
 			} else {
 				dText = (char*)realloc(dText, sizeof(char) * (strlen(xmlVerse->txt) + dTextSize + strlen(digits) + strlen(" ") + 4));
 				dTextSize += (strlen(xmlVerse->txt) + strlen(digits) + strlen(" ") + 4);
@@ -225,7 +225,6 @@ void SearchVerse(Highlight* hl, bool* lookup, Book* books, TTF_Font* font, Bible
 				snprintf(dText, dTextSize, "%s%s %s ", dText, digits, xmlVerse->txt);
 			}
 		}
-		printf("%d\n", extra);
 
 		int width, chapterHeight, height;
 
@@ -247,7 +246,7 @@ void SearchVerse(Highlight* hl, bool* lookup, Book* books, TTF_Font* font, Bible
 			TTF_SizeText(font, "", NULL, &newlineHeight);
 			newlineHeight *= (atoi(token) - 1) * 2 + extra;
 		} else {
-			width = (int)floor((width / data->wrapWidth) * height);
+			width = (int)floor((width / (int)round(data->wrapWidth * data->wrapWidthMult)) * height);
 		}
 
 
