@@ -244,7 +244,6 @@ int main(int argc, char** argv) {
 			if ((int)round(d.wrapWidth * d.wrapWidthMult) < window.width - 100)
 				d.wrapWidthMult += 0.1;
 			OpenBook(&books[d.usedBook], font, &d, jsonBooks, xmlBible);
-			printf("%d", window.width);
 		}
 
 		if (window.keys[SDL_SCANCODE_MINUS] && !window.lastKeys[SDL_SCANCODE_MINUS]) {
