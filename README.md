@@ -21,6 +21,8 @@ Currently, you can select from these versions:
 
 * BBE
 * KJV
+* AKJV (American KJV)
+* UKJV (Updated KJV)
 * WEB
 
 ***
