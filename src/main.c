@@ -241,9 +241,10 @@ int main(int argc, char** argv) {
 
 		if (window.keys[SDL_SCANCODE_EQUALS] && !window.lastKeys[SDL_SCANCODE_EQUALS]) {
 			CloseBook(&books[d.usedBook]);
-			if ((int)round(d.wrapWidth * d.wrapWidthMult) < window.width - 60)
+			if ((int)round(d.wrapWidth * d.wrapWidthMult) < window.width - 100)
 				d.wrapWidthMult += 0.1;
 			OpenBook(&books[d.usedBook], font, &d, jsonBooks, xmlBible);
+			printf("%d", window.width);
 		}
 
 		if (window.keys[SDL_SCANCODE_MINUS] && !window.lastKeys[SDL_SCANCODE_MINUS]) {
@@ -346,7 +347,7 @@ int main(int argc, char** argv) {
 		if ((lastWindowWidth != window.width) || (lastWindowHeight != window.height)) {
 			CloseBook(&books[d.usedBook]);
 			if ((int)round(d.wrapWidth * d.wrapWidthMult) >= window.width) {
-				d.wrapWidth = window.width - 60;
+				d.wrapWidth = window.width - 100;
 				d.wrapWidthMult = 1;
 			} else
 				d.wrapWidth = 900;
