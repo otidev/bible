@@ -46,8 +46,8 @@ will be accepted (See [KJV.xml](books/KJV.xml) as an example).
 
 ## Images
 
-![Photo featuring John 1](bible.png)
-![Photo featuring Genesis 1 16](bible2.png)
+![Photo featuring John 1](docs/bible.png)
+![Photo featuring Genesis 1 16](docs/bible2.png)
 
 
 
