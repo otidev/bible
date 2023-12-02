@@ -84,7 +84,9 @@ cJSON* GetRoot(char* filename) {
 
 SDL_Texture* RenderChapter(TTF_Font* font, BibleData* data, cJSON* books, ezxml_t xmlBible, int chapter) {
 	char bookChapterName[50];
-	snprintf(bookChapterName, 50, "%s %d", cJSON_GetArrayItem(cJSON_GetObjectItem(books, data->lang), data->usedBook)->valuestring, chapter);
+	ezxml_t xmlBook = ezxml_idx(ezxml_child(xmlBible, "b"), data->usedBook);
+	ezxml_t xmlChapter = ezxml_idx(ezxml_child(xmlBook, "c"), chapter - 1);
+	snprintf(bookChapterName, 50, "%s %d", cJSON_GetArrayItem(cJSON_GetObjectItem(books, data->lang), data->usedBook)->valuestring, atoi(ezxml_attr(xmlChapter, "n")));
 
 	float fontSize = (int)round(data->origFontSize * data->magnifier);
 	TTF_SetFontSize(font, fontSize * 2);
@@ -92,8 +94,6 @@ SDL_Texture* RenderChapter(TTF_Font* font, BibleData* data, cJSON* books, ezxml_
 	SDL_Texture* header = SDL_CreateTextureFromSurface(globalWindow->renderer, surf);
 	SDL_FreeSurface(surf);
 
-	ezxml_t xmlBook = ezxml_idx(ezxml_child(xmlBible, "b"), data->usedBook);
-	ezxml_t xmlChapter = ezxml_idx(ezxml_child(xmlBook, "c"), chapter - 1);
 	if (!xmlChapter) {
 		fprintf(stderr, "Error: No chapter %d!", chapter);
 	}

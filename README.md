@@ -32,7 +32,7 @@ In the future, any file with the format:
 ```xml
 <bible lang="<language in Books.json>">
     <b> <!-- book -->
-        <c> <!-- chapter -->
+        <c n="<chapterNumber>"> <!-- chapter -->
             <v n="<verseNumber>"> <!-- verse -->
             </v>
         </c>
