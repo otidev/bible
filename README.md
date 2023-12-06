@@ -60,7 +60,7 @@ and the file must be arranged as such:
 Genesis\t1\t1\tIn the beginning God created the heavens and the earth.
 ```
 
-*Note*: all the spaces are tabs
+*Note*: all `\t` should be replaced with actual tabs.
 
 ## Images
 
