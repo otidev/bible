@@ -44,6 +44,24 @@ will be accepted (See [KJV.xml](books/KJV.xml) as an example).
 
 ***
 
+### [text2xml.py](text2xml.py)
+
+This file turns any text file arranged in a certain way to an XML file parsable by this program.
+
+You use to program as such:
+
+```
+python text2xml.py <inputTextFile> <outputXMLFile> <(optional; defaults to "en") language in Books.json>
+```
+
+and the file must be arranged as such:
+
+```
+Genesis\t1\t1\tIn the beginning God created the heavens and the earth.
+```
+
+*Note*: all the spaces are tabs
+
 ## Images
 
 ![Photo featuring John 1](docs/bible.png)
