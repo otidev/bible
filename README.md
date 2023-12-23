@@ -15,22 +15,26 @@ A (kinda) fast Bible that anyone can use.
 
 ``=/-`` - Increase/Decrease wrap width
 
-To change Bible versions, type `./bible -v <version>`.
+### Versions
 
-Currently, you can select from these versions:
+Currently, the program comes with these versions:
 
-* BBE
-* KJV
+* BSB (Berean Standard Bible)
+* BBE (Bible In Basic English)
+* KJV (King James Version / Authorized Version)
 * AKJV (American KJV)
 * UKJV (Updated KJV)
-* WEB
+* WEB (World English Bible)
+
+(find them [here](books/); they are can be used out of the box)
+
+To change Bible versions, drag a compatible file (with the format below) from the file explorer.
 
 ***
-
-In the future, any file with the format:
+Files with this format:
 
 ```xml
-<bible lang="<language in Books.json>">
+<bible lang="<any language in Books.json>">
     <b> <!-- book -->
         <c n="<chapterNumber>"> <!-- chapter -->
             <v n="<verseNumber>"> <!-- verse -->
@@ -57,17 +61,17 @@ python text2xml.py <inputTextFile> <outputXMLFile> <(optional; defaults to "en")
 and the file must be arranged as such:
 
 ```
-Genesis\t1\t1\tIn the beginning God created the heavens and the earth.
+Genesis\t1\t1\tIn the beginning God created the heavens and the earth.\n
 ```
 
-*Note*: all `\t` should be replaced with actual tabs.
+*Note*: all `\t` should be replaced with actual tabs, and `\n` should be replaced with a newline.
+
+You can find an example [here](books/bsb.txt).
 
 ## Images
 
 ![Photo featuring John 1](docs/bible.png)
 ![Photo featuring Genesis 1 16](docs/bible2.png)
-
-
 
 More stuff coming soon!
 

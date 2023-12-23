@@ -49,6 +49,9 @@ bool WindowIsOpen() {
 					}
 				}
 				break;
+			case SDL_DROPFILE:
+				strcpy(globalWindow->droppedFile, globalWindow->event.drop.file);
+				break;
 		}
 	}
 
@@ -95,8 +98,8 @@ int InitCores(Window* window, int width, int height) {
 	}
 
 	window->deltaTime = 0;
-
 	window->running = true;
+	for (int i = 0; i < 500; i++) window->droppedFile[i] = 0;
 	globalWindow = window;
 	return 0;
 }

@@ -131,6 +131,16 @@ void HighlightVerse(Highlight* highlighter, BibleData* data, ezxml_t xmlBible, T
 	SDL_SetRenderDrawColor(globalWindow->renderer, data->bgColour.r, data->bgColour.g, data->bgColour.b, 0xff);
 }
 
+void ChangeBibleVersion(char* filename, BibleData* data, ezxml_t* xmlBible) {
+	*xmlBible = ezxml_parse_file(filename);
+	if (!ezxml_attr(*xmlBible, "lang")) {
+		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", "FATAL ERROR: The file is not a formatted version!", globalWindow->window);
+		fprintf(stderr, "FATAL ERROR: %s is not a formatted bible version!", filename);
+		exit(1);
+	}
+	snprintf(data->lang, 3, "%s", ezxml_attr(*xmlBible, "lang"));
+}
+
 int main(int argc, char** argv) {
 	Window window;
 	if (InitCores(&window, 1280, 720)) return 1;
@@ -178,13 +188,9 @@ int main(int argc, char** argv) {
 	d.bgImgSrcColour = (SDL_Colour){0x00, 0x00, 0x00, 0xff};
 	d.bgImgDstColour = (SDL_Colour){0x00, 0x00, 0x00, 0xff};
 
-	ezxml_t xmlBible = ezxml_parse_file(bibleVersion);
-	snprintf(d.lang, 3, "%s", ezxml_attr(xmlBible, "lang"));
-	free(bibleVersion);
-
-	TTF_Font* font = TTF_OpenFont("../fonts/Cardo-Regular.ttf", d.origFontSize);
-	if (!font) {
-		fprintf(stderr, "Error: couldn't find font!");
+	cJSON* jsonBooks = GetRoot("../books/Books.json");
+	if (!jsonBooks) {
+		fprintf(stderr, "Error: couldn't find main file!");
 		return 0;
 	}
 
@@ -192,16 +198,19 @@ int main(int argc, char** argv) {
 	SDL_SetWindowIcon(window.window, surfPtr);
 	SDL_FreeSurface(surfPtr);
 
-
-	cJSON* jsonBooks = GetRoot("../books/Books.json");
-	if (!jsonBooks) {
-		fprintf(stderr, "Error: couldn't find main file!");
+	TTF_Font* font = TTF_OpenFont("../fonts/Cardo-Regular.ttf", d.origFontSize);
+	if (!font) {
+		fprintf(stderr, "Error: couldn't find font!");
 		return 0;
 	}
 
-	LoadBibleIcon(&d, jsonBooks);
-
 	Book books[66];
+	ezxml_t xmlBible = NULL;
+	ChangeBibleVersion(bibleVersion, &d, &xmlBible);
+	printf("%s", d.lang);
+	OpenBook(&books[d.usedBook], font, &d, jsonBooks, xmlBible);
+	free(bibleVersion);
+	LoadBibleIcon(&d, jsonBooks);
 
 	Highlight highlighter;
 	highlighter.width = -1;
@@ -210,7 +219,6 @@ int main(int argc, char** argv) {
 	highlighter.verse = 0;
 	highlighter.colour = (SDL_Colour){0x00, 0x00, 0x00, 0x3f};
 
-	OpenBook(&books[d.usedBook], font, &d, jsonBooks, xmlBible);
 	TTF_SetFontSize(font, d.origFontSize + 5);
 	SDL_Surface* surf = TTF_RenderUTF8_Blended_Wrapped(font, "Enter Bible verse (format: book chapter verse):  ", (SDL_Colour){255, 255, 255, 255}, window.width);
 	TTF_SetFontSize(font, d.origFontSize);
@@ -238,6 +246,14 @@ int main(int argc, char** argv) {
 
 		ScrollAndZoom(books, &d, font, jsonBooks, xmlBible, &text);
 		ChangeChapter(books, &d, font, jsonBooks, xmlBible, &text, &textTransition);
+
+		if (globalWindow->droppedFile[0] != 0) {
+			printf("ok");
+			CloseBook(&books[d.usedBook]);
+			ChangeBibleVersion(globalWindow->droppedFile, &d, &xmlBible);
+			OpenBook(&books[d.usedBook], font, &d, jsonBooks, xmlBible);
+			for (int i = 0; i < 500; i++) globalWindow->droppedFile[i] = 0;
+		}
 
 		if (window.keys[SDL_SCANCODE_EQUALS] && !window.lastKeys[SDL_SCANCODE_EQUALS]) {
 			CloseBook(&books[d.usedBook]);

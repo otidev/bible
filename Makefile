@@ -1,6 +1,6 @@
 all: compile run
 
-ifdef PUBLISH
+ifdef RELEASE
 WINDOWS = -mwindows
 else
 WINDOWS =

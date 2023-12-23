@@ -40,6 +40,7 @@ typedef struct Window {
 	bool fullscreen;
 	bool keys[256], lastKeys[256];
 	char textInput[500];
+	char droppedFile[500];
 } Window;
 
 typedef struct Waveform {
