@@ -131,14 +131,15 @@ void HighlightVerse(Highlight* highlighter, BibleData* data, ezxml_t xmlBible, T
 	SDL_SetRenderDrawColor(globalWindow->renderer, data->bgColour.r, data->bgColour.g, data->bgColour.b, 0xff);
 }
 
-void ChangeBibleVersion(char* filename, BibleData* data, ezxml_t* xmlBible) {
+void ChangeBibleVersion(char* filename, BibleData* data, ezxml_t* xmlBible, cJSON* jsonBooks) {
 	*xmlBible = ezxml_parse_file(filename);
 	if (!ezxml_attr(*xmlBible, "lang")) {
 		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", "FATAL ERROR: The file is not a formatted version!", globalWindow->window);
 		fprintf(stderr, "FATAL ERROR: %s is not a formatted bible version!", filename);
 		exit(1);
 	}
-	snprintf(data->lang, 3, "%s", ezxml_attr(*xmlBible, "lang"));
+	snprintf(data->lang, 7, "%s", ezxml_attr(*xmlBible, "lang"));
+	data->numBooks = cJSON_GetArraySize(cJSON_GetObjectItem(jsonBooks, data->lang));
 }
 
 int main(int argc, char** argv) {
@@ -204,10 +205,10 @@ int main(int argc, char** argv) {
 		return 0;
 	}
 
-	Book books[66];
 	ezxml_t xmlBible = NULL;
-	ChangeBibleVersion(bibleVersion, &d, &xmlBible);
-	printf("%s", d.lang);
+	ChangeBibleVersion(bibleVersion, &d, &xmlBible, jsonBooks);
+	Book* books = malloc(sizeof(Book) * (d.numBooks));
+	if (d.usedBook >= d.numBooks) d.usedBook = 0;
 	OpenBook(&books[d.usedBook], font, &d, jsonBooks, xmlBible);
 	free(bibleVersion);
 	LoadBibleIcon(&d, jsonBooks);
@@ -248,9 +249,9 @@ int main(int argc, char** argv) {
 		ChangeChapter(books, &d, font, jsonBooks, xmlBible, &text, &textTransition);
 
 		if (globalWindow->droppedFile[0] != 0) {
-			printf("ok");
 			CloseBook(&books[d.usedBook]);
-			ChangeBibleVersion(globalWindow->droppedFile, &d, &xmlBible);
+			ChangeBibleVersion(globalWindow->droppedFile, &d, &xmlBible, jsonBooks);
+			if (d.usedBook >= d.numBooks) d.usedBook = 0;
 			OpenBook(&books[d.usedBook], font, &d, jsonBooks, xmlBible);
 			for (int i = 0; i < 500; i++) globalWindow->droppedFile[i] = 0;
 		}

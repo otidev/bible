@@ -28,6 +28,22 @@ bool WindowIsOpen() {
 				break;
 			case SDL_KEYDOWN:
 				globalWindow->keys[globalWindow->event.key.keysym.scancode] = true;
+				if (globalWindow->event.key.keysym.sym == SDLK_BACKSPACE) {
+					if (strlen(globalWindow->textInput) > 0) {
+						for (int i = 0; i < 500; i++) {
+							if (globalWindow->textInput[i] != 0 && globalWindow->textInput[i + 1] == 0) {
+								globalWindow->textInput[i] = 0;
+							}
+						}
+					}
+				} if (globalWindow->event.key.keysym.sym == SDLK_v) {
+					if (strlen(globalWindow->textInput) > 0) {
+						if (globalWindow->keys[SDL_SCANCODE_LCTRL] || globalWindow->keys[SDL_SCANCODE_RCTRL]) {
+							if ((strlen(SDL_GetClipboardText()) + strlen(globalWindow->textInput)) <= 500)
+								strcat(globalWindow->textInput, SDL_GetClipboardText());
+						}
+					}
+				}
 				break;
 			case SDL_KEYUP:
 				globalWindow->keys[globalWindow->event.key.keysym.scancode] = false;
@@ -54,6 +70,8 @@ bool WindowIsOpen() {
 				break;
 		}
 	}
+
+	if (globalWindow->typeBackspace) printf("yeah");
 
 	return globalWindow->running;
 }
@@ -100,6 +118,8 @@ int InitCores(Window* window, int width, int height) {
 	window->deltaTime = 0;
 	window->running = true;
 	for (int i = 0; i < 500; i++) window->droppedFile[i] = 0;
+
+	window->typeV = window->typeBackspace = false;
 	globalWindow = window;
 	return 0;
 }

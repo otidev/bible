@@ -39,6 +39,7 @@ typedef struct Window {
 	bool running;
 	bool fullscreen;
 	bool keys[256], lastKeys[256];
+	bool typeBackspace, typeV;
 	char textInput[500];
 	char droppedFile[500];
 } Window;
@@ -71,12 +72,13 @@ typedef struct Book {
 } Book;
 
 typedef struct BibleData {
-	char lang[4];
+	char lang[7];
 	bool darkMode;
 	int usedBook;
 	int wrapWidth;
 	int chapter;
 	int origFontSize;
+	int numBooks;
 	float magnifier;
 	float wrapWidthMult;
 	float scrollAmount;

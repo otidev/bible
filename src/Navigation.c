@@ -106,13 +106,6 @@ void SearchVerse(Highlight* hl, bool* lookup, Book* books, TTF_Font* font, Bible
 
 	SDL_RenderCopyF(globalWindow->renderer, lookupTex, NULL, &(SDL_FRect){5, (data->origFontSize + 5) * 2 / 2 - lookupTexHeight / 2, lookupTexWidth, lookupTexHeight});
 	SDL_RenderCopyF(globalWindow->renderer, inputTex, NULL, &(SDL_FRect){lookupTexWidth, (data->origFontSize + 5) * 2 / 2 - inputTexHeight / 2, inputTexWidth, inputTexHeight});
-	if (globalWindow->keys[SDL_SCANCODE_BACKSPACE]) {
-		for (int i = 0; i < 200; i++) {
-			if (globalWindow->textInput[i] != 0 && globalWindow->textInput[i + 1] == 0) {
-				globalWindow->textInput[i] = 0;
-			}
-		}
-	}
 
 	if (globalWindow->keys[SDL_SCANCODE_RETURN]) {
 		(*lookup) = false;
@@ -140,7 +133,7 @@ void SearchVerse(Highlight* hl, bool* lookup, Book* books, TTF_Font* font, Bible
 
 		data->chapter = atoi(token) - 1;
 
-		for (int i = 0; i < 66; i++) {
+		for (int i = 0; i < data->numBooks; i++) {
 			if (strcmp(inputBook, cJSON_GetArrayItem(cJSON_GetObjectItem(jsonBooks, data->lang), i)->valuestring) == 0) {
 				if (data->usedBook == i) {
 					break;
