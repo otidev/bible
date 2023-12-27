@@ -37,11 +37,9 @@ bool WindowIsOpen() {
 						}
 					}
 				} if (globalWindow->event.key.keysym.sym == SDLK_v) {
-					if (strlen(globalWindow->textInput) > 0) {
-						if (globalWindow->keys[SDL_SCANCODE_LCTRL] || globalWindow->keys[SDL_SCANCODE_RCTRL]) {
-							if ((strlen(SDL_GetClipboardText()) + strlen(globalWindow->textInput)) <= 500)
-								strcat(globalWindow->textInput, SDL_GetClipboardText());
-						}
+					if (globalWindow->keys[SDL_SCANCODE_LCTRL] || globalWindow->keys[SDL_SCANCODE_RCTRL]) {
+						if ((strlen(SDL_GetClipboardText()) + strlen(globalWindow->textInput)) <= 500)
+							strcat(globalWindow->textInput, SDL_GetClipboardText());
 					}
 				}
 				break;
