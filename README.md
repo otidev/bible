@@ -5,7 +5,7 @@ A (kinda) fast Bible that anyone can use.
 
 ``Arrows left/right`` - Change chapter
 
-``Ctrl + F`` - Change Bible book and/or chapter (kinda buggy)
+``Ctrl + F`` - Verse lookup (kinda buggy)
 
 ``Ctrl + L`` - Toggle verse-per-line reading
 

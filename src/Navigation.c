@@ -112,35 +112,36 @@ void SearchVerse(Highlight* hl, bool* lookup, Book* books, TTF_Font* font, Bible
 		char* token;
 		// Get number of tokens before the chapter & verse
 		int count = 0;
-		char *ptr = globalWindow->textInput;
-		while((ptr = strchr(ptr, ' ')) != NULL) {
+		char* ptr = globalWindow->textInput;
+		ptr = strpbrk(globalWindow->textInput, " :");
+
+		while (ptr != NULL) {
 			count++;
 			ptr++;
+			ptr = strpbrk(ptr, " :");
 		}
 		count++;
 
-		if (count != 3) {
+		if (count < 3) {
 			fprintf(stderr, "Error: Not enough words!");
 			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, "Error", "Search not formatted correctly!\n(format: book chapter verse)", globalWindow->window);
 			return;
 		}
 
 		token = strtok(globalWindow->textInput, " ");
-		bool firstToken = true;
 		for (int i = 0; i < count - 2; i++) {
-			if (firstToken) {
+			if (i == 0) {
 				snprintf(inputBook, 30, "%s", token);
-				firstToken = false;
 			} else {
 				snprintf(inputBook, 30, "%s %s", inputBook, token);
 			}
-			token = strtok(NULL, " ");
+			token = strtok(NULL, ":");
 		}
 
-		data->chapter = atoi(token) - 1;
-
+		bool successful = false;
 		for (int i = 0; i < data->numBooks; i++) {
 			if (strcmp(inputBook, cJSON_GetArrayItem(cJSON_GetObjectItem(jsonBooks, data->lang), i)->valuestring) == 0) {
+				successful = true;
 				if (data->usedBook == i) {
 					break;
 				} else {
@@ -152,6 +153,15 @@ void SearchVerse(Highlight* hl, bool* lookup, Book* books, TTF_Font* font, Bible
 				break;
 			}
 		}
+
+		if (!successful) {
+			fprintf(stderr, "Error: Unknown book!");
+			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, "Error", "Unknown book!", globalWindow->window);
+			return;
+		}
+
+		data->chapter = atoi(token) - 1;
+		printf("%s", token);
 
 		if (data->chapter >= books[data->usedBook].numChapters) {
 			data->chapter = 0;
@@ -181,7 +191,7 @@ void SearchVerse(Highlight* hl, bool* lookup, Book* books, TTF_Font* font, Bible
 		int numVerses;
 		for (numVerses = 0; ezxml_idx(ezxml_child(xmlChapter, "v"), numVerses); numVerses++);
 
-		token = strtok(NULL, " ");
+		token = strtok(NULL, ":");
 		if (atoi(token) - 1 >= numVerses) {
 			fprintf(stderr, "Error: No verse %d!", atoi(token) - 1);
 			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, "Error", "Verse not found!", globalWindow->window);

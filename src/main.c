@@ -221,7 +221,7 @@ int main(int argc, char** argv) {
 	highlighter.colour = (SDL_Colour){0x00, 0x00, 0x00, 0x3f};
 
 	TTF_SetFontSize(font, d.origFontSize + 5);
-	SDL_Surface* surf = TTF_RenderUTF8_Blended_Wrapped(font, "Enter Bible verse (format: book chapter verse):  ", (SDL_Colour){255, 255, 255, 255}, window.width);
+	SDL_Surface* surf = TTF_RenderUTF8_Blended_Wrapped(font, "Enter Bible verse (example: John 3:16):  ", (SDL_Colour){255, 255, 255, 255}, window.width);
 	TTF_SetFontSize(font, d.origFontSize);
 	SDL_Texture* lookupTex = SDL_CreateTextureFromSurface(globalWindow->renderer, surf);
 	int lookupTexWidth, lookupTexHeight;
