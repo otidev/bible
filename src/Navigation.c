@@ -124,7 +124,7 @@ void SearchVerse(Highlight* hl, bool* lookup, Book* books, TTF_Font* font, Bible
 
 		if (count < 3) {
 			fprintf(stderr, "Error: Not enough words!");
-			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, "Error", "Search not formatted correctly!\n(format: book chapter verse)", globalWindow->window);
+			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, "Error", "Search not formatted correctly!\n(format: book chapter:verse)", globalWindow->window);
 			return;
 		}
 
@@ -155,13 +155,12 @@ void SearchVerse(Highlight* hl, bool* lookup, Book* books, TTF_Font* font, Bible
 		}
 
 		if (!successful) {
-			fprintf(stderr, "Error: Unknown book!");
-			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, "Error", "Unknown book!", globalWindow->window);
+			fprintf(stderr, "Error: Unknown book/incorrect lookup format!");
+			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, "Error", "Unknown book/incorrect lookup format!\n(format: book chapter:verse)", globalWindow->window);
 			return;
 		}
 
 		data->chapter = atoi(token) - 1;
-		printf("%s", token);
 
 		if (data->chapter >= books[data->usedBook].numChapters) {
 			data->chapter = 0;
@@ -192,9 +191,9 @@ void SearchVerse(Highlight* hl, bool* lookup, Book* books, TTF_Font* font, Bible
 		for (numVerses = 0; ezxml_idx(ezxml_child(xmlChapter, "v"), numVerses); numVerses++);
 
 		token = strtok(NULL, ":");
-		if (atoi(token) - 1 >= numVerses) {
+		if (atoi(token) - 1 >= numVerses || !token) {
 			fprintf(stderr, "Error: No verse %d!", atoi(token) - 1);
-			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, "Error", "Verse not found!", globalWindow->window);
+			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, "Error", "Verse not found!/incorrect lookup format!\n(format: book chapter:verse)", globalWindow->window);
 			return;
 		}
 
