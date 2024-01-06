@@ -2,26 +2,10 @@
 #include "WavLoader.h"
 #include "Window.h"
 #include "Navigation.h"
+#include "Common.h"
 #include "Books.h"
 Window* globalWindow;
 uint64_t last = 0, now = 0;
-
-bool PointRectColl(Vec2 point, Rect rect) {
-	if (point.x >= rect.x && point.y >= rect.y && point.x < rect.x + rect.w && point.y < rect.y + rect.h)
-		return true;
-	else
-		return false;
-}
-
-float Lerp(float a, float b, float t) {
-	return a + t * (b - a);
-}
-
-void InitTimer(Timer* timer, float duration) {
-	timer->duration = duration;
-	timer->timePlayed = 0;
-	timer->start = timer->end = 0;
-}
 
 void HighlightVerse(Highlight* highlighter, BibleData* data, ezxml_t xmlBible, TTF_Font* font, Book* books) {
 	int textHeight;
@@ -131,15 +115,38 @@ void HighlightVerse(Highlight* highlighter, BibleData* data, ezxml_t xmlBible, T
 	SDL_SetRenderDrawColor(globalWindow->renderer, data->bgColour.r, data->bgColour.g, data->bgColour.b, 0xff);
 }
 
-void ChangeBibleVersion(char* filename, BibleData* data, ezxml_t* xmlBible, cJSON* jsonBooks) {
-	*xmlBible = ezxml_parse_file(filename);
-	if (!ezxml_attr(*xmlBible, "lang")) {
-		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", "FATAL ERROR: The file is not a formatted version!", globalWindow->window);
-		fprintf(stderr, "FATAL ERROR: %s is not a formatted bible version!", filename);
-		exit(1);
-	}
-	snprintf(data->lang, 7, "%s", ezxml_attr(*xmlBible, "lang"));
-	data->numBooks = cJSON_GetArraySize(cJSON_GetObjectItem(jsonBooks, data->lang));
+int ParseMarkdown(TTF_Font* font, char* text, int offsetX, int offsetY) {
+	int texSize = 1;
+	Texture* tex = NULL;
+
+
+	tex = realloc(NULL, sizeof(Texture) * texSize);
+	SDL_Surface* surf = TTF_RenderUTF8_Blended_Wrapped(font, "John", (SDL_Colour){255, 0, 0, 255}, globalWindow->width - 15);
+	tex[texSize - 1].data = SDL_CreateTextureFromSurface(globalWindow->renderer, surf);
+	SDL_FreeSurface(surf);
+	SDL_QueryTexture(tex[texSize - 1].data, NULL, NULL, &tex[texSize - 1].width, &tex[texSize - 1].height);
+
+	surf = TTF_RenderUTF8_Blended_Wrapped(font, " 3:16 - The ultimate verse.\nJohn 3:16 is cool imo", (SDL_Colour){0, 0, 0, 255}, globalWindow->width - 15);
+	tex = realloc(tex, sizeof(Texture) * (texSize++));
+	tex[texSize - 1].data = SDL_CreateTextureFromSurface(globalWindow->renderer, surf);
+	SDL_FreeSurface(surf);
+	SDL_QueryTexture(tex[texSize - 1].data, NULL, NULL, &tex[texSize - 1].width, &tex[texSize - 1].height);
+
+	SDL_RenderCopyF(
+		globalWindow->renderer,
+		tex[0].data,
+		NULL,
+		&(SDL_FRect){offsetX, offsetY, tex[0].width, tex[0].height}
+	);
+
+	SDL_RenderCopyF(
+		globalWindow->renderer,
+		tex[1].data,
+		NULL,
+		&(SDL_FRect){offsetX + tex[0].width, offsetY, tex[1].width, tex[1].height}
+	);
+
+	return 0;
 }
 
 int main(int argc, char** argv) {
@@ -205,6 +212,33 @@ int main(int argc, char** argv) {
 		return 0;
 	}
 
+	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
+	SDL_Surface* surf = IMG_Load("../icons/thb.png");
+	SDL_Texture* iconTexture = SDL_CreateTextureFromSurface(window.renderer, surf);
+	SDL_FreeSurface(surf);
+	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0");
+
+	int iconTexWidth, iconTexHeight;
+	float iconScale = 0.3;
+	SDL_QueryTexture(iconTexture, NULL, NULL, &iconTexWidth, &iconTexHeight);
+
+	SDL_SetRenderDrawColor(window.renderer, d.bgColour.r, d.bgColour.g, d.bgColour.b, 0xff);
+	SDL_RenderClear(window.renderer);
+	SDL_RenderCopyF(
+		window.renderer,
+		iconTexture,
+		NULL,
+		&(SDL_FRect){window.width / 2 - (iconTexWidth * iconScale) / 2, window.height / 2 - (iconTexHeight * iconScale) / 2, iconTexWidth * iconScale, iconTexHeight * iconScale}
+	);
+	SDL_RenderPresent(window.renderer);
+
+
+	Timer iconTransition;
+	InitTimer(&iconTransition, 0.7);
+	iconTransition.start = 255;
+	iconTransition.end = 0;
+	int iconA = iconTransition.start;
+
 	ezxml_t xmlBible = NULL;
 	ChangeBibleVersion(bibleVersion, &d, &xmlBible, jsonBooks);
 	Book* books = malloc(sizeof(Book) * (d.numBooks));
@@ -221,7 +255,7 @@ int main(int argc, char** argv) {
 	highlighter.colour = (SDL_Colour){0x00, 0x00, 0x00, 0x3f};
 
 	TTF_SetFontSize(font, d.origFontSize + 5);
-	SDL_Surface* surf = TTF_RenderUTF8_Blended_Wrapped(font, "Enter Bible verse (example: John 3:16):  ", (SDL_Colour){255, 255, 255, 255}, window.width);
+	surf = TTF_RenderUTF8_Blended_Wrapped(font, "Enter Bible verse (example: John 3:16):  ", (SDL_Colour){255, 255, 255, 255}, window.width);
 	TTF_SetFontSize(font, d.origFontSize);
 	SDL_Texture* lookupTex = SDL_CreateTextureFromSurface(globalWindow->renderer, surf);
 	int lookupTexWidth, lookupTexHeight;
@@ -239,6 +273,9 @@ int main(int argc, char** argv) {
 	bool lookup = false;
 	bool highlightVerse = false;
 	bool fullscreen = true;
+	bool notetaking = false;
+
+	bool startScreen = true, firstFrame = true;
 
 	while (WindowIsOpen()) {
 		now = SDL_GetTicks64();
@@ -306,6 +343,10 @@ int main(int argc, char** argv) {
 			OpenBook(&books[d.usedBook], font, &d, jsonBooks, xmlBible);
 		}
 
+		if (window.keys[SDL_SCANCODE_LCTRL] && (window.keys[SDL_SCANCODE_N] && !window.lastKeys[SDL_SCANCODE_N])) {
+			if (notetaking == false) notetaking = true; else notetaking = false;
+		}
+
 		if (window.keys[SDL_SCANCODE_F11] && !window.lastKeys[SDL_SCANCODE_F11]) {
 			if (!fullscreen) {
 				fullscreen = true;
@@ -333,6 +374,14 @@ int main(int argc, char** argv) {
 			d.textOffset = textTransition.end;
 		}
 
+		if (iconA != iconTransition.end && !firstFrame) {
+			iconA = Lerp(iconTransition.start, iconTransition.end, pow((iconTransition.timePlayed / iconTransition.duration), 3));
+			iconTransition.timePlayed += window.deltaTime;
+		} if (iconTransition.timePlayed >= iconTransition.duration) {
+			iconTransition.timePlayed = 0;
+			iconA = iconTransition.end;
+		}
+
 		if ((d.textColour.r != d.dstTextColour.r || d.textColour.g != d.dstTextColour.g || d.textColour.b != d.dstTextColour.b) || (d.bgColour.r != d.dstBgColour.r || d.bgColour.g != d.dstBgColour.g || d.bgColour.b != d.dstBgColour.b)) {
 			d.textColour.r = Lerp(d.srcTextColour.r, d.dstTextColour.r, 1 - pow(1 - (darkLightTransition.timePlayed / darkLightTransition.duration), 2));
 			d.textColour.g = Lerp(d.srcTextColour.g, d.dstTextColour.g, 1 - pow(1 - (darkLightTransition.timePlayed / darkLightTransition.duration), 2));
@@ -350,7 +399,6 @@ int main(int argc, char** argv) {
 			d.textColour.r = d.dstTextColour.r; d.textColour.g = d.dstTextColour.g; d.textColour.b = d.dstTextColour.b;
 			d.bgColour.r = d.dstBgColour.r; d.bgColour.g = d.dstBgColour.g; d.bgColour.b = d.dstBgColour.b;
 			d.bgImgColour.r = d.bgImgDstColour.r; d.bgImgColour.g = d.bgImgDstColour.g; d.bgImgColour.b = d.bgImgDstColour.b;
-
 		}
 
 		if (d.scrollAmount > window.height / 2) {
@@ -444,6 +492,35 @@ int main(int argc, char** argv) {
 				);
 			}
 		}
+
+		if (notetaking) {
+			SDL_SetRenderDrawBlendMode(globalWindow->renderer, SDL_BLENDMODE_BLEND);
+			SDL_SetRenderDrawColor(globalWindow->renderer, d.bgColour.r, d.bgColour.g, d.bgColour.b, 0xef);
+			SDL_RenderFillRect(globalWindow->renderer, &(SDL_Rect){0, globalWindow->height - globalWindow->height / 4, globalWindow->width, globalWindow->height / 4});
+			SDL_SetRenderDrawColor(window.renderer, 0, 0, 0, 0xff);
+			SDL_RenderDrawLine(globalWindow->renderer, 0, globalWindow->height - globalWindow->height / 4, globalWindow->width, globalWindow->height - globalWindow->height / 4);
+
+			// SDL_Surface* surf = TTF_RenderUTF8_Blended_Wrapped(font, "John 3:16 - The ultimate verse.\nJohn 3:16 is cool imo", (SDL_Colour){0, 0, 0, 255}, window.width - 15);
+			// Texture tex;
+			// tex.data = SDL_CreateTextureFromSurface(globalWindow->renderer, surf);
+			// SDL_FreeSurface(surf);
+			// SDL_QueryTexture(tex.data, NULL, NULL, &tex.width, &tex.height);
+
+			ParseMarkdown(font, "John 3:16 - The ultimate verse.\nJohn 3:16 is cool imo", 15, globalWindow->height - globalWindow->height / 4 + 15);
+		}
+
+		if (startScreen) {
+			SDL_SetTextureColorMod(iconTexture, 255, 255, 255);
+			SDL_SetTextureAlphaMod(iconTexture, iconA);
+			SDL_RenderCopyF(
+				window.renderer,
+				iconTexture,
+				NULL,
+				&(SDL_FRect){window.width / 2 - (iconTexWidth * iconScale) / 2, window.height / 2 - (iconTexHeight * iconScale) / 2, iconTexWidth * iconScale, iconTexHeight * iconScale}
+			);
+		}
+
+		firstFrame = false;
 
 		SDL_RenderPresent(window.renderer);
 	}

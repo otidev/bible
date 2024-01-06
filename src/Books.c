@@ -181,3 +181,14 @@ void OpenBook(Book* dstBook, TTF_Font* font, BibleData* data, cJSON* jsonBooks, 
 		SDL_QueryTexture(dstBook->chapters[j].tex.data, NULL, NULL, &dstBook->chapters[j].tex.width, &dstBook->chapters[j].tex.height);
 	}
 }
+
+void ChangeBibleVersion(char* filename, BibleData* data, ezxml_t* xmlBible, cJSON* jsonBooks) {
+	*xmlBible = ezxml_parse_file(filename);
+	if (!ezxml_attr(*xmlBible, "lang")) {
+		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", "FATAL ERROR: The file is not a formatted version!", globalWindow->window);
+		fprintf(stderr, "FATAL ERROR: %s is not a formatted bible version!", filename);
+		exit(1);
+	}
+	snprintf(data->lang, 7, "%s", ezxml_attr(*xmlBible, "lang"));
+	data->numBooks = cJSON_GetArraySize(cJSON_GetObjectItem(jsonBooks, data->lang));
+}

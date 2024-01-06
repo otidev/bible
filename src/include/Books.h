@@ -15,4 +15,6 @@ void OpenBook(Book* dstBook, TTF_Font* font, BibleData* data, cJSON* jsonBooks, 
 
 void RenderBookAndBooksBeside(TTF_Font* font, int fontSize, int textWrapWidth, Book* books, int bookNumber, cJSON* jsonBooks, ezxml_t xmlBible);
 
+void ChangeBibleVersion(char* filename, BibleData* data, ezxml_t* xmlBible, cJSON* jsonBooks);
+
 #endif
