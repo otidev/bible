@@ -156,24 +156,6 @@ int main(int argc, char** argv) {
 	char* bibleVersion = 0;
 	int bibleVersionSize = 0;
 
-	for (int i = 0; i < argc; i++) {
-		if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--version") == 0) {
-			if (i + 1 < argc) {
-				bibleVersionSize = strlen(argv[i + 1]) + strlen("../books/.xml") + 2;
-				bibleVersion = realloc(NULL, bibleVersionSize);
-				memset(bibleVersion, 0, bibleVersionSize);
-				snprintf(bibleVersion, bibleVersionSize, "../books/%s.xml", argv[i + 1]);
-			}
-		}
-	}
-
-	if (bibleVersion == 0) {
-		bibleVersionSize = strlen("../books/KJV.xml") + 1;
-		bibleVersion = realloc(NULL, bibleVersionSize);
-		memset(bibleVersion, 0, bibleVersionSize);
-		snprintf(bibleVersion, bibleVersionSize, "../books/KJV.xml");
-	}
-
 	BibleData d;
 	d.usedBook = 42;
 	d.magnifier = 1;
@@ -196,6 +178,50 @@ int main(int argc, char** argv) {
 	d.bgImgSrcColour = (SDL_Colour){0x00, 0x00, 0x00, 0xff};
 	d.bgImgDstColour = (SDL_Colour){0x00, 0x00, 0x00, 0xff};
 
+	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
+	SDL_Texture* iconTexture = IMG_LoadTexture(window.renderer, "../icons/thb.png");
+	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0");
+
+	int iconTexWidth, iconTexHeight;
+	float iconScale = 0.4;
+	SDL_QueryTexture(iconTexture, NULL, NULL, &iconTexWidth, &iconTexHeight);
+
+	SDL_SetRenderDrawColor(window.renderer, d.bgColour.r, d.bgColour.g, d.bgColour.b, 0xff);
+	SDL_RenderClear(window.renderer);
+	SDL_RenderCopyF(
+		window.renderer,
+		iconTexture,
+		NULL,
+		&(SDL_FRect){window.width / 2 - (iconTexWidth * iconScale) / 2, window.height / 2 - (iconTexHeight * iconScale) / 2, iconTexWidth * iconScale, iconTexHeight * iconScale}
+	);
+	SDL_RenderPresent(window.renderer);
+
+
+	Timer iconTransition;
+	InitTimer(&iconTransition, 1.5);
+	iconTransition.start = 255;
+	iconTransition.end = 0;
+	float iconA = iconTransition.start;
+
+
+	for (int i = 0; i < argc; i++) {
+		if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--version") == 0) {
+			if (i + 1 < argc) {
+				bibleVersionSize = strlen(argv[i + 1]) + strlen("../books/.xml") + 2;
+				bibleVersion = realloc(NULL, bibleVersionSize);
+				memset(bibleVersion, 0, bibleVersionSize);
+				snprintf(bibleVersion, bibleVersionSize, "../books/%s.xml", argv[i + 1]);
+			}
+		}
+	}
+
+	if (bibleVersion == 0) {
+		bibleVersionSize = strlen("../books/KJV.xml") + 1;
+		bibleVersion = realloc(NULL, bibleVersionSize);
+		memset(bibleVersion, 0, bibleVersionSize);
+		snprintf(bibleVersion, bibleVersionSize, "../books/KJV.xml");
+	}
+
 	cJSON* jsonBooks = GetRoot("../books/Books.json");
 	if (!jsonBooks) {
 		fprintf(stderr, "Error: couldn't find main file!");
@@ -211,33 +237,6 @@ int main(int argc, char** argv) {
 		fprintf(stderr, "Error: couldn't find font!");
 		return 0;
 	}
-
-	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
-	SDL_Surface* surf = IMG_Load("../icons/thb.png");
-	SDL_Texture* iconTexture = SDL_CreateTextureFromSurface(window.renderer, surf);
-	SDL_FreeSurface(surf);
-	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0");
-
-	int iconTexWidth, iconTexHeight;
-	float iconScale = 0.3;
-	SDL_QueryTexture(iconTexture, NULL, NULL, &iconTexWidth, &iconTexHeight);
-
-	SDL_SetRenderDrawColor(window.renderer, d.bgColour.r, d.bgColour.g, d.bgColour.b, 0xff);
-	SDL_RenderClear(window.renderer);
-	SDL_RenderCopyF(
-		window.renderer,
-		iconTexture,
-		NULL,
-		&(SDL_FRect){window.width / 2 - (iconTexWidth * iconScale) / 2, window.height / 2 - (iconTexHeight * iconScale) / 2, iconTexWidth * iconScale, iconTexHeight * iconScale}
-	);
-	SDL_RenderPresent(window.renderer);
-
-
-	Timer iconTransition;
-	InitTimer(&iconTransition, 0.7);
-	iconTransition.start = 255;
-	iconTransition.end = 0;
-	int iconA = iconTransition.start;
 
 	ezxml_t xmlBible = NULL;
 	ChangeBibleVersion(bibleVersion, &d, &xmlBible, jsonBooks);
@@ -255,7 +254,7 @@ int main(int argc, char** argv) {
 	highlighter.colour = (SDL_Colour){0x00, 0x00, 0x00, 0x3f};
 
 	TTF_SetFontSize(font, d.origFontSize + 5);
-	surf = TTF_RenderUTF8_Blended_Wrapped(font, "Enter Bible verse (example: John 3:16):  ", (SDL_Colour){255, 255, 255, 255}, window.width);
+	SDL_Surface* surf = TTF_RenderUTF8_Blended_Wrapped(font, "Enter Bible verse (example: John 3:16):  ", (SDL_Colour){255, 255, 255, 255}, window.width);
 	TTF_SetFontSize(font, d.origFontSize);
 	SDL_Texture* lookupTex = SDL_CreateTextureFromSurface(globalWindow->renderer, surf);
 	int lookupTexWidth, lookupTexHeight;
@@ -375,7 +374,7 @@ int main(int argc, char** argv) {
 		}
 
 		if (iconA != iconTransition.end && !firstFrame) {
-			iconA = Lerp(iconTransition.start, iconTransition.end, pow((iconTransition.timePlayed / iconTransition.duration), 3));
+			iconA = Lerp(iconTransition.start, iconTransition.end, 1 - pow(1 - (iconTransition.timePlayed / iconTransition.duration), 5));
 			iconTransition.timePlayed += window.deltaTime;
 		} if (iconTransition.timePlayed >= iconTransition.duration) {
 			iconTransition.timePlayed = 0;
@@ -510,8 +509,7 @@ int main(int argc, char** argv) {
 		}
 
 		if (startScreen) {
-			SDL_SetTextureColorMod(iconTexture, 255, 255, 255);
-			SDL_SetTextureAlphaMod(iconTexture, iconA);
+			SDL_SetTextureAlphaMod(iconTexture, (int)round(iconA));
 			SDL_RenderCopyF(
 				window.renderer,
 				iconTexture,

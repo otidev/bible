@@ -88,8 +88,6 @@ int InitCores(Window* window, int width, int height) {
 	TTF_Init();
 	IMG_Init(IMG_INIT_PNG);
 
-	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
-
 	window->window = SDL_CreateWindow("Bible", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
 	if (!window->window) {
 		fprintf(stderr, "Error: Could not create an SDL Window.");
