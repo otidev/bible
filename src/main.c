@@ -241,8 +241,15 @@ int main(int argc, char** argv) {
 	ezxml_t xmlBible = NULL;
 	ChangeBibleVersion(bibleVersion, &d, &xmlBible, jsonBooks);
 	Book* books = malloc(sizeof(Book) * (d.numBooks));
+
+	for (int i = 0; i < d.numBooks; i++) {
+		ezxml_t xmlBook = ezxml_idx(ezxml_child(xmlBible, "b"), i);
+		for (books[i].numChapters = 0; ezxml_idx(ezxml_child(xmlBook, "c"), books[i].numChapters); books[i].numChapters++);
+		books[i].chapters = realloc(NULL, books[i].numChapters * sizeof(Chapter));
+	}
+
 	if (d.usedBook >= d.numBooks) d.usedBook = 0;
-	OpenBook(&books[d.usedBook], font, &d, jsonBooks, xmlBible);
+	OpenChapter(&books[d.usedBook], font, &d, jsonBooks, xmlBible, d.chapter);
 	free(bibleVersion);
 	LoadBibleIcon(&d, jsonBooks);
 
@@ -271,7 +278,7 @@ int main(int argc, char** argv) {
 	int lastWindowHeight = window.height;
 	bool lookup = false;
 	bool highlightVerse = false;
-	bool fullscreen = true;
+	bool fullscreen = false;
 	bool notetaking = false;
 
 	bool startScreen = true, firstFrame = true;
@@ -285,25 +292,25 @@ int main(int argc, char** argv) {
 		ChangeChapter(books, &d, font, jsonBooks, xmlBible, &text, &textTransition);
 
 		if (globalWindow->droppedFile[0] != 0) {
-			CloseBook(&books[d.usedBook]);
+			CloseChapter(&books[d.usedBook], d.chapter);
 			ChangeBibleVersion(globalWindow->droppedFile, &d, &xmlBible, jsonBooks);
 			if (d.usedBook >= d.numBooks) d.usedBook = 0;
-			OpenBook(&books[d.usedBook], font, &d, jsonBooks, xmlBible);
+			OpenChapter(&books[d.usedBook], font, &d, jsonBooks, xmlBible, d.chapter);
 			for (int i = 0; i < 500; i++) globalWindow->droppedFile[i] = 0;
 		}
 
 		if (window.keys[SDL_SCANCODE_EQUALS] && !window.lastKeys[SDL_SCANCODE_EQUALS]) {
-			CloseBook(&books[d.usedBook]);
+			CloseChapter(&books[d.usedBook], d.chapter);
 			if ((int)round(d.wrapWidth * d.wrapWidthMult) < window.width - 100)
 				d.wrapWidthMult += 0.1;
-			OpenBook(&books[d.usedBook], font, &d, jsonBooks, xmlBible);
+			OpenChapter(&books[d.usedBook], font, &d, jsonBooks, xmlBible, d.chapter);
 		}
 
 		if (window.keys[SDL_SCANCODE_MINUS] && !window.lastKeys[SDL_SCANCODE_MINUS]) {
-			CloseBook(&books[d.usedBook]);
+			CloseChapter(&books[d.usedBook], d.chapter);
 			if ((int)round(d.wrapWidth * d.wrapWidthMult) > 200)
 				d.wrapWidthMult -= 0.1;
-			OpenBook(&books[d.usedBook], font, &d, jsonBooks, xmlBible);
+			OpenChapter(&books[d.usedBook], font, &d, jsonBooks, xmlBible, d.chapter);
 		}
 
 		if (window.keys[SDL_SCANCODE_LCTRL] && (window.keys[SDL_SCANCODE_F] && !window.lastKeys[SDL_SCANCODE_F])) {
@@ -333,13 +340,13 @@ int main(int argc, char** argv) {
 		}
 
 		if (window.keys[SDL_SCANCODE_LCTRL] && (window.keys[SDL_SCANCODE_L] && !window.lastKeys[SDL_SCANCODE_L])) {
-			CloseBook(&books[d.usedBook]);
+			CloseChapter(&books[d.usedBook], d.chapter);
 			if (d.versePerLine) {
 				d.versePerLine = false;
 			} else {
 				d.versePerLine = true;
 			}
-			OpenBook(&books[d.usedBook], font, &d, jsonBooks, xmlBible);
+			OpenChapter(&books[d.usedBook], font, &d, jsonBooks, xmlBible, d.chapter);
 		}
 
 		if (window.keys[SDL_SCANCODE_LCTRL] && (window.keys[SDL_SCANCODE_N] && !window.lastKeys[SDL_SCANCODE_N])) {
@@ -408,13 +415,13 @@ int main(int argc, char** argv) {
 		}
 
 		if ((lastWindowWidth != window.width) || (lastWindowHeight != window.height)) {
-			CloseBook(&books[d.usedBook]);
+			CloseChapter(&books[d.usedBook], d.chapter);
 			if ((int)round(d.wrapWidth * d.wrapWidthMult) >= window.width) {
 				d.wrapWidth = window.width - 100;
 				d.wrapWidthMult = 1;
 			} else
 				d.wrapWidth = 900;
-			OpenBook(&books[d.usedBook], font, &d, jsonBooks, xmlBible);
+			OpenChapter(&books[d.usedBook], font, &d, jsonBooks, xmlBible, d.chapter);
 			if (lastWindowWidth != window.width) {
 				lastWindowWidth = window.width;
 			} if (lastWindowHeight != window.height) {
@@ -425,9 +432,9 @@ int main(int argc, char** argv) {
 
 		if (d.textOffset == textTransition.end && textTransition.start != textTransition.end) {
 			if (textTransition.start > textTransition.end && d.chapter + 1 >= books[d.usedBook].numChapters) {
-				CloseBook(&books[d.usedBook + 1]);
+				CloseChapter(&books[d.usedBook + 1], 0);
 			} if (textTransition.start < textTransition.end && d.chapter - 1 < 0) {
-				CloseBook(&books[d.usedBook - 1]);
+				CloseChapter(&books[d.usedBook - 1], books[d.usedBook - 1].numChapters - 1);
 			}
 			textTransition.start = textTransition.end = 0;
 		}
@@ -524,7 +531,7 @@ int main(int argc, char** argv) {
 	}
 
 	SDL_DestroyTexture(lookupTex);
-	CloseBook(&books[d.usedBook]);
+	CloseChapter(&books[d.usedBook], d.chapter);
 
 	ezxml_free(xmlBible);
 

@@ -168,6 +168,10 @@ void CloseBook(Book* book) {
 	free(book->chapters);
 }
 
+void CloseChapter(Book* book, int chapter) {
+	SDL_DestroyTexture(book->chapters[chapter].tex.data);
+}
+
 void OpenBook(Book* dstBook, TTF_Font* font, BibleData* data, cJSON* jsonBooks, ezxml_t xmlBible) {
 	ezxml_t xmlBook = ezxml_idx(ezxml_child(xmlBible, "b"), data->usedBook);
 	for (dstBook->numChapters = 0; ezxml_idx(ezxml_child(xmlBook, "c"), dstBook->numChapters); dstBook->numChapters++);
@@ -180,6 +184,16 @@ void OpenBook(Book* dstBook, TTF_Font* font, BibleData* data, cJSON* jsonBooks, 
 		dstBook->chapters[j].tex.data = RenderChapter(font, data, jsonBooks, xmlBible, j + 1);
 		SDL_QueryTexture(dstBook->chapters[j].tex.data, NULL, NULL, &dstBook->chapters[j].tex.width, &dstBook->chapters[j].tex.height);
 	}
+}
+
+void OpenChapter(Book* dstBook, TTF_Font* font, BibleData* data, cJSON* jsonBooks, ezxml_t xmlBible, int chapter) {
+	if (chapter > dstBook->numChapters || chapter < 0) {
+		fprintf(stderr, "Error: Insufficent range\n");
+		return;
+	}
+
+	dstBook->chapters[chapter].tex.data = RenderChapter(font, data, jsonBooks, xmlBible, chapter + 1);
+	SDL_QueryTexture(dstBook->chapters[chapter].tex.data, NULL, NULL, &dstBook->chapters[chapter].tex.width, &dstBook->chapters[chapter].tex.height);
 }
 
 void ChangeBibleVersion(char* filename, BibleData* data, ezxml_t* xmlBible, cJSON* jsonBooks) {

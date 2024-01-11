@@ -18,9 +18,9 @@ void LoadBibleIcon(BibleData* data, cJSON* jsonBooks) {
 void ScrollAndZoom(Book* books, BibleData* data, TTF_Font* font, cJSON* jsonBooks, ezxml_t xmlBible, Timer* text) {
 	if (globalWindow->mouseScroll.y > 0 || (globalWindow->keys[SDL_SCANCODE_UP] && !globalWindow->lastKeys[SDL_SCANCODE_UP])) {
 		if (globalWindow->keys[SDL_SCANCODE_LCTRL]) {
-			CloseBook(&books[data->usedBook]);
+			CloseChapter(&books[data->usedBook], data->chapter);
 			data->magnifier += 0.2;
-			OpenBook(&books[data->usedBook], font, data, jsonBooks, xmlBible);
+			OpenChapter(&books[data->usedBook], font, data, jsonBooks, xmlBible, data->chapter);
 		} else {
 			text->start = data->scrollAmount;
 			if (data->scrollAmount + 200 < globalWindow->height / 2)
@@ -31,9 +31,9 @@ void ScrollAndZoom(Book* books, BibleData* data, TTF_Font* font, cJSON* jsonBook
 		}
 	} if (globalWindow->mouseScroll.y < 0 || (globalWindow->keys[SDL_SCANCODE_DOWN] && !globalWindow->lastKeys[SDL_SCANCODE_DOWN])) {
 		if (globalWindow->keys[SDL_SCANCODE_LCTRL]) {
-			CloseBook(&books[data->usedBook]);
+			CloseChapter(&books[data->usedBook], data->chapter);
 			data->magnifier -= 0.2;
-			OpenBook(&books[data->usedBook], font, data, jsonBooks, xmlBible);
+			OpenChapter(&books[data->usedBook], font, data, jsonBooks, xmlBible, data->chapter);
 		} else {
 			text->start = data->scrollAmount;
 			if (data->scrollAmount - 200 > -books[data->usedBook].chapters[data->chapter].tex.height + globalWindow->height / 2)
@@ -54,12 +54,13 @@ void ChangeChapter(Book* books, BibleData* data, TTF_Font* font, cJSON* jsonBook
 			textTransition->timePlayed = 0;
 			if (data->chapter + 1 == books[data->usedBook].numChapters && data->usedBook != 65) {
 				data->usedBook++;
-				OpenBook(&books[data->usedBook], font, data, jsonBooks, xmlBible);
 				data->chapter = 0;
+				OpenChapter(&books[data->usedBook], font, data, jsonBooks, xmlBible, data->chapter);
 				textTransition->duration = 1.2;
 				LoadBibleIcon(data, jsonBooks);
 			} else {
 				data->chapter++;
+				OpenChapter(&books[data->usedBook], font, data, jsonBooks, xmlBible, data->chapter);
 				textTransition->duration = 0.7;
 			}
 		}
@@ -71,12 +72,13 @@ void ChangeChapter(Book* books, BibleData* data, TTF_Font* font, cJSON* jsonBook
 			textTransition->timePlayed = 0;
 			if (data->chapter == 0 && data->usedBook != 0) {
 				data->usedBook--;
-				OpenBook(&books[data->usedBook], font, data, jsonBooks, xmlBible);
 				data->chapter = books[data->usedBook].numChapters - 1;
+				OpenChapter(&books[data->usedBook], font, data, jsonBooks, xmlBible, data->chapter);
 				textTransition->duration = 1.2;
 				LoadBibleIcon(data, jsonBooks);
 			} else {
 				data->chapter--;
+				OpenChapter(&books[data->usedBook], font, data, jsonBooks, xmlBible, data->chapter);
 				textTransition->duration = 0.7;
 			}
 		}
@@ -145,9 +147,9 @@ void SearchVerse(Highlight* hl, bool* lookup, Book* books, TTF_Font* font, Bible
 				if (data->usedBook == i) {
 					break;
 				} else {
-					CloseBook(&books[data->usedBook]);
+					CloseChapter(&books[data->usedBook], data->chapter);
 					data->usedBook = i;
-					OpenBook(&books[data->usedBook], font, data, jsonBooks, xmlBible);
+					OpenChapter(&books[data->usedBook], font, data, jsonBooks, xmlBible, data->chapter);
 					LoadBibleIcon(data, jsonBooks);
 				}
 				break;
