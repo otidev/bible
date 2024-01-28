@@ -131,14 +131,22 @@ void SearchVerse(Highlight* hl, bool* lookup, Book* books, TTF_Font* font, Bible
 		}
 
 		token = strtok(globalWindow->textInput, " ");
+		// Fix for multiple words
 		for (int i = 0; i < count - 2; i++) {
 			if (i == 0) {
 				snprintf(inputBook, 30, "%s", token);
 			} else {
 				snprintf(inputBook, 30, "%s %s", inputBook, token);
 			}
-			token = strtok(NULL, ":");
+
+			if (i == count - 3)
+				token = strtok(NULL, ":");
+			else
+				token = strtok(NULL, " ");
 		}
+
+		int formerChapterVal = data->chapter;
+		data->chapter = atoi(token) - 1;
 
 		bool successful = false;
 		for (int i = 0; i < data->numBooks; i++) {
@@ -147,8 +155,14 @@ void SearchVerse(Highlight* hl, bool* lookup, Book* books, TTF_Font* font, Bible
 				if (data->usedBook == i) {
 					break;
 				} else {
-					CloseChapter(&books[data->usedBook], data->chapter);
+					CloseChapter(&books[data->usedBook], formerChapterVal);
 					data->usedBook = i;
+					if (data->chapter >= books[data->usedBook].numChapters) {
+						data->chapter = 0;
+						fprintf(stderr, "Error: Chapter too high!");
+						SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, "Error", "Chapter of book too high!", globalWindow->window);
+						return;
+					}
 					OpenChapter(&books[data->usedBook], font, data, jsonBooks, xmlBible, data->chapter);
 					LoadBibleIcon(data, jsonBooks);
 				}
@@ -159,15 +173,6 @@ void SearchVerse(Highlight* hl, bool* lookup, Book* books, TTF_Font* font, Bible
 		if (!successful) {
 			fprintf(stderr, "Error: Unknown book/incorrect lookup format!");
 			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, "Error", "Unknown book/incorrect lookup format!\n(format: book chapter:verse)", globalWindow->window);
-			return;
-		}
-
-		data->chapter = atoi(token) - 1;
-
-		if (data->chapter >= books[data->usedBook].numChapters) {
-			data->chapter = 0;
-			fprintf(stderr, "Error: Chapter too high!");
-			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, "Error", "Chapter of book too high!", globalWindow->window);
 			return;
 		}
 
@@ -195,7 +200,7 @@ void SearchVerse(Highlight* hl, bool* lookup, Book* books, TTF_Font* font, Bible
 		token = strtok(NULL, ":");
 		if (atoi(token) - 1 >= numVerses || !token) {
 			fprintf(stderr, "Error: No verse %d!", atoi(token) - 1);
-			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, "Error", "Verse not found!/incorrect lookup format!\n(format: book chapter:verse)", globalWindow->window);
+			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, "Error", "Verse not found/incorrect lookup format!\n(format: book chapter:verse)", globalWindow->window);
 			return;
 		}
 
